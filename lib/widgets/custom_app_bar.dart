@@ -24,56 +24,59 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Container(color: Colors.grey.shade200, height: 1),
       ),
       titleSpacing: 6,
-      title: GestureDetector(
+      title: InkWell(
         onTap: () {
           if (isHomePage) return;
-          // If we are already on HomePage, we might not want to push replacement.
-          // For simplicity, we'll replace the stack with HomePage.
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const HomePage()),
             (route) => false,
           );
         },
-        child: Row(
-          children: [
-            // Logo
-            Container(
-              width: 35,
-              height: 35,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1877F2),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1877F2).withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text(
-                  'P',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Logo
+              Container(
+                width: 35,
+                height: 35,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1877F2),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1877F2).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'P',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 5),
-            // Brand Name
-            const Text(
-              'PulchowkX',
-              style: TextStyle(
-                color: Color(0xFF111827),
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
+              const SizedBox(width: 5),
+              // Brand Name
+              const Text(
+                'PulchowkX',
+                style: TextStyle(
+                  color: Color(0xFF111827),
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [

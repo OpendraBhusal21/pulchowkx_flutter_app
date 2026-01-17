@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
@@ -67,7 +68,14 @@ class HomePage extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                    },
                     style: ButtonStyle(
                       side: WidgetStateProperty.all(
                         const BorderSide(color: Color(0xFF1E88E5)),
