@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/map.dart';
-import 'package:pulchowkx_app/pages/my_enrollments.dart';
+import 'package:pulchowkx_app/cards/my_enrollments.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
 class DashboardPage extends StatelessWidget {

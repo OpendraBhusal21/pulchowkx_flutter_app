@@ -35,6 +35,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   maplibre_gl: ^0.25.0
+  flutter_svg: ^2.0.0
+  flutter_better_auth: ^0.1.3
 
 dev_dependencies:
   flutter_test:
@@ -62,6 +64,7 @@ flutter:
     - assets/geojson/pulchowk.json
     - assets/geojson/pulchowk_mask.json
     - assets/style/pulchowk_style.json
+    - assets/images/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
