@@ -65,9 +65,6 @@ class ApiService {
         }),
       );
 
-      print('Sync user response status: ${response.statusCode}');
-      print('Sync user response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
         final data = json['data'];
@@ -75,7 +72,6 @@ class ApiService {
           final databaseUserId = data['user']['id'] as String;
           // Store the database user ID for future API calls
           await _storeDatabaseUserId(databaseUserId);
-          print('Stored database user ID: $databaseUserId');
           return databaseUserId;
         }
       }

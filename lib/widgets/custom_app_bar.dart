@@ -237,72 +237,98 @@ class _MobileMenu extends StatelessWidget {
           _CompactSignInButton(
             onTap: () => CustomAppBar._navigateToLogin(context, currentPage),
           ),
-        const SizedBox(width: 4),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.menu_rounded, color: AppColors.textPrimary),
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          offset: const Offset(0, 45),
-          onSelected: (value) {
-            switch (value) {
-              case 'clubs':
-                CustomAppBar._navigateToClubs(context, isLoggedIn, currentPage);
-                break;
-              case 'events':
-                CustomAppBar._navigateToEvents(
-                  context,
-                  isLoggedIn,
-                  currentPage,
-                );
-                break;
-              case 'map':
-                CustomAppBar._navigateToMap(context, currentPage);
-                break;
-              case 'dashboard':
-                CustomAppBar._navigateToDashboard(context, currentPage);
-                break;
-              case 'login':
-                CustomAppBar._navigateToLogin(context, currentPage);
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            _buildMenuItem(
-              'clubs',
-              Icons.groups_rounded,
-              'Clubs',
-              currentPage == AppPage.clubs,
-            ),
-            _buildMenuItem(
-              'events',
-              Icons.event_rounded,
-              'Events',
-              currentPage == AppPage.events,
-            ),
-            _buildMenuItem(
-              'map',
-              Icons.map_rounded,
-              'Map',
-              currentPage == AppPage.map,
-            ),
-            const PopupMenuDivider(),
-            if (isLoggedIn)
-              _buildMenuItem(
-                'dashboard',
-                Icons.dashboard_rounded,
-                'Dashboard',
-                currentPage == AppPage.dashboard,
-              )
-            else
-              _buildMenuItem(
-                'login',
-                Icons.login_rounded,
-                'Sign In',
-                currentPage == AppPage.login,
+        const SizedBox(width: 8),
+        Theme(
+          data: Theme.of(context).copyWith(
+            popupMenuTheme: PopupMenuThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                side: const BorderSide(color: AppColors.borderLight),
               ),
-          ],
+              elevation: 4,
+              color: AppColors.surface,
+              surfaceTintColor: Colors.transparent,
+            ),
+          ),
+          child: PopupMenuButton<String>(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: const Icon(
+                Icons.menu_rounded,
+                color: AppColors.textPrimary,
+                size: 20,
+              ),
+            ),
+            padding: EdgeInsets.zero,
+            offset: const Offset(0, 50),
+            onSelected: (value) {
+              switch (value) {
+                case 'clubs':
+                  CustomAppBar._navigateToClubs(
+                    context,
+                    isLoggedIn,
+                    currentPage,
+                  );
+                  break;
+                case 'events':
+                  CustomAppBar._navigateToEvents(
+                    context,
+                    isLoggedIn,
+                    currentPage,
+                  );
+                  break;
+                case 'map':
+                  CustomAppBar._navigateToMap(context, currentPage);
+                  break;
+                case 'dashboard':
+                  CustomAppBar._navigateToDashboard(context, currentPage);
+                  break;
+                case 'login':
+                  CustomAppBar._navigateToLogin(context, currentPage);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              _buildMenuItem(
+                'clubs',
+                Icons.groups_rounded,
+                'Clubs',
+                currentPage == AppPage.clubs,
+              ),
+              _buildMenuItem(
+                'events',
+                Icons.event_rounded,
+                'Events',
+                currentPage == AppPage.events,
+              ),
+              _buildMenuItem(
+                'map',
+                Icons.map_rounded,
+                'Map',
+                currentPage == AppPage.map,
+              ),
+              const PopupMenuDivider(height: 24),
+              if (isLoggedIn)
+                _buildMenuItem(
+                  'dashboard',
+                  Icons.dashboard_rounded,
+                  'Dashboard',
+                  currentPage == AppPage.dashboard,
+                )
+              else
+                _buildMenuItem(
+                  'login',
+                  Icons.login_rounded,
+                  'Sign In',
+                  currentPage == AppPage.login,
+                ),
+            ],
+          ),
         ),
       ],
     );
@@ -316,27 +342,45 @@ class _MobileMenu extends StatelessWidget {
   ) {
     return PopupMenuItem<String>(
       value: value,
-      enabled: !isActive,
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: isActive ? AppColors.primary : AppColors.textSecondary,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: isActive ? AppColors.primary : null,
-              fontWeight: isActive ? FontWeight.w600 : null,
+      enabled: !isActive, // Disable interaction if already on the page
+      height: 48,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.primary.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isActive ? AppColors.primary : AppColors.textSecondary,
             ),
-          ),
-          if (isActive) ...[
-            const Spacer(),
-            Icon(Icons.check_rounded, size: 16, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: isActive ? AppColors.primary : AppColors.textPrimary,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (isActive)
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
           ],
-        ],
+        ),
       ),
     );
   }
