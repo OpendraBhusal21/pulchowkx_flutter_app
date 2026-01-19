@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pulchowkx_app/theme/app_theme.dart';
 
 class LogoCard extends StatelessWidget {
   final double width;
@@ -11,23 +12,18 @@ class LogoCard extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: const Color(0xFF1877F2),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1877F2).withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: AppShadows.colored(AppColors.primary),
       ),
-      child: const Center(
+      child: Center(
         child: Text(
           'P',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+            fontSize: width * 0.55,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
           ),
         ),
       ),

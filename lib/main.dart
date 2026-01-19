@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
+import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -17,11 +18,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'PulchowkX',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromRGBO(30, 136, 229, 1.0),
-        ),
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
       home: const HomePage(),
     );
   }
