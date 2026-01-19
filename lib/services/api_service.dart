@@ -11,7 +11,7 @@ class ApiService {
   // For production: your deployed backend URL
   // static const String baseUrl = 'http://10.0.2.2:3000/api/event';
   // static const String apiBaseUrl = 'http://10.0.2.2:3000/api';
-  static const String baseUrl = 'https://pulchowk-x.vercel.app/api/event';
+  static const String baseUrl = 'https://pulchowk-x.vercel.app/api/events';
   static const String apiBaseUrl = 'https://pulchowk-x.vercel.app/api';
 
   static const String _dbUserIdKey = 'database_user_id';
@@ -55,7 +55,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/sync-user'),
+        Uri.parse('$apiBaseUrl/users/sync-user'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'authStudentId': authStudentId,
@@ -139,7 +139,7 @@ class ApiService {
   Future<ClubProfile?> getClubProfile(int clubId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/club-profile/$clubId'),
+        Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
         headers: {'Content-Type': 'application/json'},
       );
 
