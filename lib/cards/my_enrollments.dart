@@ -1,4 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:pulchowkx_app/models/event.dart';
+import 'package:pulchowkx_app/pages/event_details.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
 class MyEnrollments extends StatefulWidget {
@@ -9,6 +14,24 @@ class MyEnrollments extends StatefulWidget {
 }
 
 class _MyEnrollmentsState extends State<MyEnrollments> {
+  final ApiService _apiService = ApiService();
+  late Future<List<EventRegistration>> _enrollmentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEnrollments();
+  }
+
+  void _loadEnrollments() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _enrollmentsFuture = _apiService.getEnrollments(user.uid);
+    } else {
+      _enrollmentsFuture = Future.value([]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -40,58 +63,124 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text('My Event Enrollments', style: AppTextStyles.h4),
+              const Spacer(),
+              IconButton(
+                onPressed: () {
+                  setState(() => _loadEnrollments());
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 20),
+                tooltip: 'Refresh',
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
 
           // Dynamic Event List
-          ...[
-            {
-              'title': 'Debt Hackathon 2026',
-              'club': 'DEBT CLUB',
-              'date': 'Tue, Jan 27',
-              'location': 'Innovation Lab',
-              'status': 'registered',
+          FutureBuilder<List<EventRegistration>>(
+            future: _enrollmentsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return _buildEmptyState(
+                  icon: Icons.error_outline_rounded,
+                  title: 'Failed to load enrollments',
+                  subtitle: 'Please try again later',
+                  color: AppColors.error,
+                );
+              }
+
+              final enrollments = snapshot.data ?? [];
+              final activeEnrollments = enrollments
+                  .where((e) => e.status == 'registered')
+                  .toList();
+
+              if (activeEnrollments.isEmpty) {
+                return _buildEmptyState(
+                  icon: Icons.event_busy_rounded,
+                  title: 'No enrollments yet',
+                  subtitle: 'Browse events and register to see them here',
+                  color: AppColors.textMuted,
+                );
+              }
+
+              return Column(
+                children: activeEnrollments.map((enrollment) {
+                  final event = enrollment.event;
+                  if (event == null) return const SizedBox.shrink();
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _EventCard(
+                      enrollment: enrollment,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                EventDetailsPage(event: event),
+                          ),
+                        ).then((_) {
+                          // Refresh enrollments when coming back
+                          setState(() => _loadEnrollments());
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              );
             },
-            {
-              'title': 'Robo Soccer 2026',
-              'club': 'ROBOTICS CLUB',
-              'date': 'Fri, Feb 14',
-              'location': 'LOC Hall',
-              'status': 'registered',
-            },
-          ].map(
-            (event) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: _EventCard(
-                title: event['title'] as String,
-                club: event['club'] as String,
-                date: event['date'] as String,
-                location: event['location'] as String,
-                status: event['status'] as String,
-              ),
-            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(icon, size: 40, color: color.withValues(alpha: 0.5)),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              title,
+              style: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _EventCard extends StatefulWidget {
-  final String title;
-  final String club;
-  final String date;
-  final String location;
-  final String status;
+  final EventRegistration enrollment;
+  final VoidCallback onTap;
 
-  const _EventCard({
-    required this.title,
-    required this.club,
-    required this.date,
-    required this.location,
-    required this.status,
-  });
+  const _EventCard({required this.enrollment, required this.onTap});
 
   @override
   State<_EventCard> createState() => _EventCardState();
@@ -102,6 +191,9 @@ class _EventCardState extends State<_EventCard> {
 
   @override
   Widget build(BuildContext context) {
+    final event = widget.enrollment.event!;
+    final dateFormat = DateFormat('EEE, MMM d');
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -119,7 +211,7 @@ class _EventCardState extends State<_EventCard> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () {},
+            onTap: widget.onTap,
             borderRadius: BorderRadius.circular(AppRadius.md),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -144,15 +236,16 @@ class _EventCardState extends State<_EventCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.title, style: AppTextStyles.labelLarge),
+                        Text(event.title, style: AppTextStyles.labelLarge),
                         const SizedBox(height: 2),
-                        Text(
-                          widget.club,
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
+                        if (event.club != null)
+                          Text(
+                            event.club!.name.toUpperCase(),
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
                         const SizedBox(height: AppSpacing.sm),
                         Wrap(
                           spacing: AppSpacing.sm,
@@ -160,42 +253,13 @@ class _EventCardState extends State<_EventCard> {
                           children: [
                             _InfoChip(
                               icon: Icons.calendar_month_rounded,
-                              label: widget.date,
+                              label: dateFormat.format(event.eventStartTime),
                             ),
                             _InfoChip(
                               icon: Icons.location_on_rounded,
-                              label: widget.location,
+                              label: event.venue ?? 'TBA',
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.successLight,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.full,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 12,
-                                    color: AppColors.success,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    widget.status.toUpperCase(),
-                                    style: AppTextStyles.labelSmall.copyWith(
-                                      color: AppColors.success,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildStatusBadge(event),
                           ],
                         ),
                       ],
@@ -207,6 +271,52 @@ class _EventCardState extends State<_EventCard> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(ClubEvent event) {
+    Color bgColor;
+    Color textColor;
+    String text;
+    IconData icon;
+
+    if (event.isOngoing) {
+      bgColor = AppColors.success.withValues(alpha: 0.15);
+      textColor = AppColors.success;
+      text = 'LIVE';
+      icon = Icons.circle;
+    } else if (event.isUpcoming) {
+      bgColor = AppColors.info.withValues(alpha: 0.15);
+      textColor = AppColors.info;
+      text = 'UPCOMING';
+      icon = Icons.schedule_rounded;
+    } else {
+      bgColor = AppColors.textMuted.withValues(alpha: 0.15);
+      textColor = AppColors.textMuted;
+      text = 'COMPLETED';
+      icon = Icons.check_circle_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

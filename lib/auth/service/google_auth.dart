@@ -1,10 +1,12 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/foundation.dart";
 import "package:google_sign_in/google_sign_in.dart";
+import "package:pulchowkx_app/services/api_service.dart";
 
 class FirebaseServices {
   final FirebaseAuth auth = FirebaseAuth.instance;
   final GoogleSignIn googleSignIn = GoogleSignIn();
+  final ApiService _apiService = ApiService();
 
   Future<bool> signInWithGoogle() async {
     try {
@@ -35,7 +37,17 @@ class FirebaseServices {
         debugPrint("========== Login Successful ==========");
         debugPrint("Name: ${user.displayName}");
         debugPrint("Email: ${user.email}");
+        debugPrint("UID: ${user.uid}");
         debugPrint("=======================================");
+
+        // Sync user to Postgres database
+        final synced = await _apiService.syncUser(
+          authStudentId: user.uid,
+          email: user.email ?? '',
+          name: user.displayName ?? 'Unknown User',
+          image: user.photoURL,
+        );
+        debugPrint("User synced to database: $synced");
       }
 
       return true;
