@@ -41,13 +41,13 @@ class FirebaseServices {
         debugPrint("=======================================");
 
         // Sync user to Postgres database
-        final synced = await _apiService.syncUser(
+        final dbUserId = await _apiService.syncUser(
           authStudentId: user.uid,
           email: user.email ?? '',
           name: user.displayName ?? 'Unknown User',
           image: user.photoURL,
         );
-        debugPrint("User synced to database: $synced");
+        debugPrint("User synced to database. DB ID: $dbUserId");
       }
 
       return true;

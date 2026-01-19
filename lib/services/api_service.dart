@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Change this to your backend URL
@@ -13,16 +14,40 @@ class ApiService {
   static const String baseUrl = 'https://pulchowk-x.vercel.app/api/event';
   static const String apiBaseUrl = 'https://pulchowk-x.vercel.app/api';
 
+  static const String _dbUserIdKey = 'database_user_id';
+
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
+  // ==================== USER ID MANAGEMENT ====================
+
+  /// Get the database user ID (linked account ID)
+  /// Falls back to Firebase UID if not set
+  Future<String?> getDatabaseUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_dbUserIdKey);
+  }
+
+  /// Store the database user ID
+  Future<void> _storeDatabaseUserId(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_dbUserIdKey, id);
+  }
+
+  /// Clear stored user ID on logout
+  Future<void> clearStoredUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_dbUserIdKey);
+  }
+
   // ==================== USER SYNC ====================
 
   /// Sync Firebase user to Postgres database
   /// Call this after successful Firebase sign-in
-  Future<bool> syncUser({
+  /// Returns the database user ID (may differ from Firebase UID if account was linked)
+  Future<String?> syncUser({
     required String authStudentId,
     required String email,
     required String name,
@@ -45,15 +70,19 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
-        if (json['data'] != null) {
-          return json['data']['success'] == true;
+        final data = json['data'];
+        if (data != null && data['success'] == true && data['user'] != null) {
+          final databaseUserId = data['user']['id'] as String;
+          // Store the database user ID for future API calls
+          await _storeDatabaseUserId(databaseUserId);
+          print('Stored database user ID: $databaseUserId');
+          return databaseUserId;
         }
-        return json['success'] == true;
       }
-      return false;
+      return null;
     } catch (e) {
       print('Error syncing user: $e');
-      return false;
+      return null;
     }
   }
 

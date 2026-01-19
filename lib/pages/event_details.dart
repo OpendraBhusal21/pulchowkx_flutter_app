@@ -7,6 +7,8 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
+import 'package:pulchowkx_app/widgets/event_status_badge.dart';
+
 class EventDetailsPage extends StatefulWidget {
   /// The event to display. Can be partial data (from enrollments) or full data.
   final ClubEvent? event;
@@ -86,7 +88,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _fullEvent == null) return;
 
-    final enrollments = await _apiService.getEnrollments(user.uid);
+    final userId = await _apiService.getDatabaseUserId() ?? user.uid;
+    final enrollments = await _apiService.getEnrollments(userId);
     if (mounted) {
       setState(() {
         _isRegistered = enrollments.any(
@@ -106,8 +109,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     setState(() => _isRegistering = true);
 
     try {
+      final userId = await _apiService.getDatabaseUserId() ?? user.uid;
       final success = await _apiService.registerForEvent(
-        user.uid,
+        userId,
         _fullEvent!.id,
       );
 
@@ -168,8 +172,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     setState(() => _isCancelling = true);
 
     try {
+      final userId = await _apiService.getDatabaseUserId() ?? user.uid;
       final success = await _apiService.cancelRegistration(
-        user.uid,
+        userId,
         _fullEvent!.id,
       );
 
@@ -294,7 +299,12 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   ),
                 ),
                 // Status badge
-                Positioned(top: 16, left: 16, child: _buildStatusBadge(event)),
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: EventStatusBadge(event: event),
+                ),
+
                 // Title at bottom
                 Positioned(
                   bottom: 16,
@@ -428,7 +438,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                 ),
                               ),
                               Text(
-                                dateFormat.format(event.registrationDeadline!),
+                                '${dateFormat.format(event.registrationDeadline!)} at ${timeFormat.format(event.registrationDeadline!)}',
                                 style: AppTextStyles.labelMedium.copyWith(
                                   color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w600,
@@ -486,48 +496,6 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
       child: const Center(
         child: Icon(Icons.event_rounded, color: Colors.white, size: 64),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(ClubEvent event) {
-    Color bgColor;
-    String text;
-    IconData? icon;
-
-    if (event.isOngoing) {
-      bgColor = AppColors.success;
-      text = 'LIVE NOW';
-      icon = Icons.circle;
-    } else if (event.isUpcoming) {
-      bgColor = AppColors.primary;
-      text = event.eventType.toUpperCase();
-    } else {
-      bgColor = AppColors.textSecondary;
-      text = 'COMPLETED';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 10, color: Colors.white),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            text,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -595,13 +563,23 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
             width: double.infinity,
-            child: TextButton(
+            child: OutlinedButton(
               onPressed: _isCancelling ? null : _handleCancelRegistration,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.error),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
               child: _isCancelling
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.error,
+                      ),
                     )
                   : Text(
                       'Cancel Registration',

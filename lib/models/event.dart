@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import 'club.dart';
 
 enum EventStatus { draft, published, ongoing, completed, cancelled }
@@ -145,10 +147,12 @@ class ClubEvent {
   bool get canRegister {
     if (!isRegistrationOpen) return false;
     if (registrationDeadline != null &&
-        DateTime.now().isAfter(registrationDeadline!))
+        DateTime.now().isAfter(registrationDeadline!)) {
       return false;
-    if (maxParticipants != null && currentParticipants >= maxParticipants!)
+    }
+    if (maxParticipants != null && currentParticipants >= maxParticipants!) {
       return false;
+    }
     return true;
   }
 }
@@ -185,7 +189,7 @@ class EventRegistration {
         final eventJson = json['event'] as Map<String, dynamic>;
         parsedEvent = ClubEvent.fromPartialJson(eventJson);
       } catch (e) {
-        print('Error parsing event in registration: $e');
+        debugPrint('Error parsing event in registration: $e');
       }
     }
 
