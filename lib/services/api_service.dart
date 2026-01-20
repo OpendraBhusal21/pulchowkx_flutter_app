@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -331,6 +332,32 @@ class ApiService {
     } catch (e) {
       print('Error fetching enrollments: $e');
       return [];
+    }
+  }
+
+  // ==================== CHATBOT ====================
+
+  /// Send a query to the campus navigation chatbot
+  Future<ChatBotResponse> chatBot(String query) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/chatbot/chat'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'query': query}),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return ChatBotResponse.fromJson(json);
+      }
+
+      return ChatBotResponse(
+        success: false,
+        errorMessage: 'Server error: ${response.statusCode}',
+      );
+    } catch (e) {
+      print('Error calling chatbot: $e');
+      return ChatBotResponse(success: false, errorMessage: 'Network error: $e');
     }
   }
 }
