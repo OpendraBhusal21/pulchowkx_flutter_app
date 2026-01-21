@@ -6,11 +6,33 @@ import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/home_page.dart';
 import 'package:pulchowkx_app/pages/map.dart';
 import 'package:pulchowkx_app/cards/my_enrollments.dart';
+import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  final ApiService _apiService = ApiService();
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await _apiService.isAdmin();
+    if (mounted) {
+      setState(() => _isAdmin = isAdmin);
+    }
+  }
 
   Future<void> _handleSignOut(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -189,7 +211,9 @@ class DashboardPage extends StatelessWidget {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.successLight,
+                                    color: _isAdmin
+                                        ? AppColors.accentLight
+                                        : AppColors.successLight,
                                     borderRadius: BorderRadius.circular(
                                       AppRadius.full,
                                     ),
@@ -198,16 +222,22 @@ class DashboardPage extends StatelessWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        Icons.verified_rounded,
+                                        _isAdmin
+                                            ? Icons.admin_panel_settings
+                                            : Icons.verified_rounded,
                                         size: 12,
-                                        color: AppColors.success,
+                                        color: _isAdmin
+                                            ? AppColors.accent
+                                            : AppColors.success,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Active Student',
+                                        _isAdmin ? 'Admin' : 'Active Student',
                                         style: AppTextStyles.labelSmall
                                             .copyWith(
-                                              color: AppColors.success,
+                                              color: _isAdmin
+                                                  ? AppColors.accent
+                                                  : AppColors.success,
                                               fontWeight: FontWeight.w600,
                                             ),
                                       ),

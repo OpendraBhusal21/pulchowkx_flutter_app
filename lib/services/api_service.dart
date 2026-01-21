@@ -17,6 +17,7 @@ class ApiService {
   static const String apiBaseUrl = 'https://pulchowk-x.vercel.app/api';
 
   static const String _dbUserIdKey = 'database_user_id';
+  static const String _userRoleKey = 'user_role';
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -42,9 +43,26 @@ class ApiService {
   Future<void> clearStoredUserId() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_dbUserIdKey);
+    await prefs.remove(_userRoleKey);
   }
 
-  // ==================== USER SYNC ====================
+  /// Get the user's role (student, admin, etc.)
+  Future<String> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userRoleKey) ?? 'student';
+  }
+
+  /// Check if user is admin
+  Future<bool> isAdmin() async {
+    final role = await getUserRole();
+    return role == 'admin';
+  }
+
+  /// Store the user role
+  Future<void> _storeUserRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userRoleKey, role);
+  }
 
   /// Sync Firebase user to Postgres database
   /// Call this after successful Firebase sign-in
@@ -72,8 +90,10 @@ class ApiService {
         final data = json['data'];
         if (data != null && data['success'] == true && data['user'] != null) {
           final databaseUserId = data['user']['id'] as String;
-          // Store the database user ID for future API calls
+          final userRole = data['user']['role'] as String? ?? 'student';
+          // Store the database user ID and role for future API calls
           await _storeDatabaseUserId(databaseUserId);
+          await _storeUserRole(userRole);
           return databaseUserId;
         }
       }
@@ -545,6 +565,266 @@ class ApiService {
     } catch (e) {
       print('Error calling chatbot: $e');
       return ChatBotResponse(success: false, errorMessage: 'Network error: $e');
+    }
+  }
+
+  // ==================== ADMIN: EVENT MANAGEMENT ====================
+
+  /// Create a new event for a club
+  Future<Map<String, dynamic>> createEvent({
+    required String authId,
+    required int clubId,
+    required String title,
+    required String description,
+    required String eventType,
+    required String venue,
+    required int maxParticipants,
+    required String registrationDeadline,
+    required String eventStartTime,
+    required String eventEndTime,
+    String? bannerUrl,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/create-event'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'authId': authId,
+          'clubId': clubId,
+          'title': title,
+          'description': description,
+          'eventType': eventType,
+          'venue': venue,
+          'maxParticipants': maxParticipants,
+          'registrationDeadline': registrationDeadline,
+          'eventStartTime': eventStartTime,
+          'eventEndTime': eventEndTime,
+          'bannerUrl': bannerUrl,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        return {
+          'success': data['success'] == true,
+          'event': data['event'],
+          'message': data['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error creating event: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== ADMIN: CLUB MANAGEMENT ====================
+
+  /// Create a new club (admin only)
+  Future<Map<String, dynamic>> createClub({
+    required String name,
+    required String email,
+    String? description,
+    String? logoUrl,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/create-club'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'description': description,
+          'logoUrl': logoUrl,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        return {
+          'success': data['success'] == true,
+          'club': data['club'],
+          'message': data['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error creating club: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Update club information
+  Future<Map<String, dynamic>> updateClubInfo(
+    int clubId,
+    Map<String, dynamic> clubData,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/clubs/$clubId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(clubData),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        return {'success': data['success'] == true, 'message': data['message']};
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error updating club info: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Update club profile
+  Future<Map<String, dynamic>> updateClubProfile(
+    int clubId,
+    Map<String, dynamic> profileData,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(profileData),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        return {
+          'success': data['success'] == true,
+          'profile': data['profile'],
+          'message': data['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error updating club profile: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // ==================== ADMIN: CLUB ADMIN MANAGEMENT ====================
+
+  /// Get list of admins for a club
+  Future<List<Map<String, dynamic>>> getClubAdmins(int clubId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/club/admins/$clubId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        if (data['success'] == true && data['admins'] != null) {
+          return List<Map<String, dynamic>>.from(data['admins']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error getting club admins: $e');
+      return [];
+    }
+  }
+
+  /// Add a club admin
+  Future<Map<String, dynamic>> addClubAdmin({
+    required int clubId,
+    required String email,
+    required String ownerId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/club/add-admin'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'clubId': clubId,
+          'email': email,
+          'ownerId': ownerId,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        return {'success': data['success'] == true, 'message': data['message']};
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error adding club admin: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Remove a club admin
+  Future<Map<String, dynamic>> removeClubAdmin({
+    required int clubId,
+    required String userId,
+    required String ownerId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/club/remove-admin'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'clubId': clubId,
+          'userId': userId,
+          'ownerId': ownerId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        return {'success': data['success'] == true, 'message': data['message']};
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error removing club admin: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Check if current user is admin or owner of a club
+  Future<bool> isClubAdminOrOwner(int clubId, String? userId) async {
+    if (userId == null) return false;
+
+    try {
+      // First check if user is club owner
+      final club = await getClub(clubId);
+      if (club != null && club.authClubId == userId) {
+        return true;
+      }
+
+      // Check if user is in club admins list
+      final admins = await getClubAdmins(clubId);
+      return admins.any((admin) => admin['id'] == userId);
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
     }
   }
 }

@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/pages/event_details.dart';
+import 'package:pulchowkx_app/pages/admin/create_event_page.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
@@ -28,17 +29,53 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
   late Future<ClubProfile?> _profileFuture;
   late Future<List<ClubEvent>> _eventsFuture;
 
+  bool _isAuthorized = false;
+  Club? _cachedClub;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+    _checkAuthorization();
   }
 
   void _loadData() {
     _clubFuture = _apiService.getClub(widget.clubId);
     _profileFuture = _apiService.getClubProfile(widget.clubId);
     _eventsFuture = _apiService.getClubEvents(widget.clubId);
+  }
+
+  Future<void> _checkAuthorization() async {
+    final dbUserId = await _apiService.getDatabaseUserId();
+    if (dbUserId != null) {
+      final isAuthorized = await _apiService.isClubAdminOrOwner(
+        widget.clubId,
+        dbUserId,
+      );
+      if (mounted) {
+        setState(() => _isAuthorized = isAuthorized);
+      }
+    }
+  }
+
+  Future<void> _navigateToCreateEvent() async {
+    if (_cachedClub == null) return;
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            CreateEventPage(clubId: widget.clubId, clubName: _cachedClub!.name),
+      ),
+    );
+
+    if (result == true) {
+      // Refresh events list after successful creation
+      setState(() {
+        _eventsFuture = _apiService.getClubEvents(widget.clubId);
+      });
+    }
   }
 
   @override
@@ -51,6 +88,15 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(),
+      floatingActionButton: _isAuthorized
+          ? FloatingActionButton.extended(
+              onPressed: _navigateToCreateEvent,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('New Event'),
+            )
+          : null,
       body: FutureBuilder<Club?>(
         future: _clubFuture,
         builder: (context, clubSnapshot) {
@@ -75,6 +121,9 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
           if (club == null) {
             return _buildErrorState('Club not found');
           }
+
+          // Cache the club for later use
+          _cachedClub = club;
 
           return Container(
             decoration: const BoxDecoration(gradient: AppColors.heroGradient),
