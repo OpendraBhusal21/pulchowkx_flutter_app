@@ -671,8 +671,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   ),
                 ],
 
-                // Description
-                if (event.description != null) ...[
+                // Description - Use extra details if available, fallback to event description
+                if (event.description != null || _extraDetails != null) ...[
                   const SizedBox(height: AppSpacing.xl),
                   Text(
                     'About This Event',
@@ -689,12 +689,35 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       border: Border.all(color: AppColors.border),
                     ),
                     child: Text(
-                      event.description!,
+                      _extraDetails?['fullDescription']?.isNotEmpty == true
+                          ? _extraDetails!['fullDescription']!
+                          : (event.description ?? 'No description available'),
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.6,
                       ),
                     ),
+                  ),
+                ],
+
+                // Extra Details Sections
+                if (_extraDetails != null) ...[
+                  _buildDetailSection(
+                    'Objectives',
+                    _extraDetails!['objectives'],
+                  ),
+                  _buildDetailSection(
+                    'Target Audience',
+                    _extraDetails!['targetAudience'],
+                  ),
+                  _buildDetailSection(
+                    'Prerequisites',
+                    _extraDetails!['prerequisites'],
+                  ),
+                  _buildDetailSection('Rules', _extraDetails!['rules']),
+                  _buildDetailSection(
+                    'Judging Criteria',
+                    _extraDetails!['judgingCriteria'],
                   ),
                 ],
 
@@ -886,6 +909,38 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       child: const Center(
         child: Icon(Icons.event_rounded, color: Colors.white, size: 64),
       ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, String? content) {
+    if (content == null || content.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        Text(
+          title,
+          style: AppTextStyles.h4.copyWith(color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Text(
+            content,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

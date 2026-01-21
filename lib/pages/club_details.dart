@@ -670,6 +670,14 @@ class _AboutTabState extends State<_AboutTab> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
+          // Club Owner (represented by the Club entity itself)
+          _buildAdminTile(
+            name: widget.club.name,
+            email: widget.club.email ?? 'No email',
+            image: widget.club.logoUrl,
+            isOwner: true,
+          ),
+
           // Admins List
           if (_loadingAdmins)
             const Padding(
@@ -683,10 +691,12 @@ class _AboutTabState extends State<_AboutTab> {
               ),
             )
           else if (_admins.isEmpty)
+            // Only show message if we want to explicitly say no *additional* admins
+            // or we can just show nothing since we already showed the Owner
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
-                'No admins assigned to this club',
+                'No additional admins',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                   fontStyle: FontStyle.italic,
@@ -695,17 +705,17 @@ class _AboutTabState extends State<_AboutTab> {
             )
           else
             ..._admins.asMap().entries.map((entry) {
-              final index = entry.key;
               final admin = entry.value;
               final user = admin['user'];
               if (user == null) return const SizedBox.shrink();
               return Padding(
-                padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpacing.sm),
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
                 child: _buildAdminTile(
                   name: user['name'] ?? 'Unknown',
                   email: user['email'] ?? '',
                   image: user['image'],
-                  isOwner: index == 0, // First admin is marked as primary
+                  isOwner:
+                      false, // Additional admins are not "Owner" in this context
                 ),
               );
             }),
