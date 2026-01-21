@@ -882,4 +882,125 @@ class ApiService {
       return false;
     }
   }
+
+  // ==================== EVENT EXTRA DETAILS ====================
+
+  /// Get registered students for an event
+  Future<List<Map<String, dynamic>>> getRegisteredStudents(int eventId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http.post(
+        Uri.parse('$baseUrl/registered-student'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'eventId': eventId}),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] ?? json;
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+        if (data['registrations'] != null) {
+          return List<Map<String, dynamic>>.from(data['registrations']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error getting registered students: $e');
+      return [];
+    }
+  }
+
+  /// Get extra event details
+  Future<Map<String, dynamic>?> getExtraEventDetails(int eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/clubs/event-details/$eventId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['details'] != null) {
+          return Map<String, dynamic>.from(json['details']);
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error getting extra event details: $e');
+      return null;
+    }
+  }
+
+  /// Create extra event details
+  Future<Map<String, dynamic>> createExtraEventDetails(
+    int eventId,
+    Map<String, dynamic> detailsData,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/clubs/event-details/create-event-details'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'eventId': eventId, ...detailsData}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+        return {
+          'success': json['success'] == true,
+          'details': json['details'],
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error creating extra event details: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Update extra event details
+  Future<Map<String, dynamic>> updateExtraEventDetails(
+    int eventId,
+    Map<String, dynamic> detailsData,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/clubs/event-details/update-eventdetail'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (userId != null) 'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'eventId': eventId, ...detailsData}),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return {
+          'success': json['success'] == true,
+          'details': json['details'],
+          'message': json['message'],
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Server error: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Error updating extra event details: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }

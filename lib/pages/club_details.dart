@@ -459,11 +459,53 @@ class _ClubTabBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _ClubTabBarDelegate oldDelegate) => true;
 }
 
-class _AboutTab extends StatelessWidget {
+class _AboutTab extends StatefulWidget {
   final Club club;
   final ClubProfile? profile;
 
   const _AboutTab({required this.club, this.profile});
+
+  @override
+  State<_AboutTab> createState() => _AboutTabState();
+}
+
+class _AboutTabState extends State<_AboutTab> {
+  final ApiService _apiService = ApiService();
+  List<Map<String, dynamic>> _admins = [];
+  bool _loadingAdmins = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAdmins();
+  }
+
+  Future<void> _loadAdmins() async {
+    try {
+      final admins = await _apiService.getClubAdmins(widget.club.id);
+      if (mounted) {
+        setState(() {
+          _admins = admins;
+          _loadingAdmins = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingAdmins = false);
+      }
+    }
+  }
+
+  /// Check if profile has any content
+  bool get _hasProfileContent {
+    final profile = widget.profile;
+    if (profile == null) return false;
+    return (profile.aboutClub?.isNotEmpty ?? false) ||
+        (profile.mission?.isNotEmpty ?? false) ||
+        (profile.vision?.isNotEmpty ?? false) ||
+        (profile.benefits?.isNotEmpty ?? false) ||
+        (profile.achievements?.isNotEmpty ?? false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -472,7 +514,7 @@ class _AboutTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Brief Intro / Template Text
+          // Introduction Section
           Text(
             'INTRODUCTION',
             style: AppTextStyles.labelSmall.copyWith(
@@ -483,50 +525,283 @@ class _AboutTab extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'About ${club.name}',
+            'About ${widget.club.name}',
             style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(
-            "Welcome to the official page of ${club.name}. Our club is a vibrant community where creativity, innovation, and collaboration come together. We host various events throughout the year, from workshops and seminars to social gatherings and competitions.\n\nMembers of ${club.name} gain access to a network of like minded individuals, hands on experience in various projects, and the opportunity to lead and organize campus wide events.",
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.6,
+
+          // About Text - conditional based on profile
+          if (_hasProfileContent &&
+              widget.profile?.aboutClub?.isNotEmpty == true)
+            Text(
+              widget.profile!.aboutClub!,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.6,
+              ),
+            )
+          else
+            Text(
+              "Welcome to the official page of ${widget.club.name}. Our club is a vibrant community where creativity, innovation, and collaboration come together. We host various events throughout the year, from workshops and seminars to social gatherings and competitions.\n\nMembers of ${widget.club.name} gain access to a network of like minded individuals, hands on experience in various projects, and the opportunity to lead and organize campus wide events.",
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.6,
+              ),
             ),
-          ),
+
+          // Mission & Vision (if profile has content)
+          if (_hasProfileContent) ...[
+            if (widget.profile?.mission?.isNotEmpty == true) ...[
+              const SizedBox(height: AppSpacing.xl),
+              _buildProfileSection(
+                'OUR MISSION',
+                widget.profile!.mission!,
+                Icons.flag_rounded,
+                const Color(0xFF2196F3),
+              ),
+            ],
+            if (widget.profile?.vision?.isNotEmpty == true) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildProfileSection(
+                'OUR VISION',
+                widget.profile!.vision!,
+                Icons.visibility_rounded,
+                const Color(0xFF9C27B0),
+              ),
+            ],
+            if (widget.profile?.benefits?.isNotEmpty == true) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildProfileSection(
+                'MEMBER BENEFITS',
+                widget.profile!.benefits!,
+                Icons.card_giftcard_rounded,
+                const Color(0xFF4CAF50),
+              ),
+            ],
+            if (widget.profile?.achievements?.isNotEmpty == true) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildProfileSection(
+                'ACHIEVEMENTS',
+                widget.profile!.achievements!,
+                Icons.emoji_events_rounded,
+                const Color(0xFFFF9800),
+              ),
+            ],
+          ],
+
           const SizedBox(height: AppSpacing.xl),
 
-          // 2. Club Statistics
-          // if (profile?.establishedYear != null) ...[
-          //   Container(
-          //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          //     decoration: BoxDecoration(
-          //       border: Border.all(color: AppColors.border),
-          //       borderRadius: BorderRadius.circular(AppRadius.md),
-          //     ),
-          //     // child: Row(
-          //     //   mainAxisSize: MainAxisSize.min,
-          //     //   children: [
-          //     //     const Icon(
-          //     //       Icons.calendar_today_outlined,
-          //     //       size: 16,
-          //     //       color: AppColors.textSecondary,
-          //     //     ),
-          //     //     // const SizedBox(width: 8),
-          //     //     // Text(
-          //     //     //   'Est. ${profile!.establishedYear}',
-          //     //     //   style: AppTextStyles.labelMedium.copyWith(
-          //     //     //     fontWeight: FontWeight.bold,
-          //     //     //   ),
-          //     //     // ),
-          //     //   ],
-          //     // ),
-          //   ),
-          //   const SizedBox(height: AppSpacing.lg),
-          // ],
+          // Admins Section
+          _buildAdminsSection(),
 
-          // 3. Contact Info
-          _ContactCard(club: club, profile: profile),
+          const SizedBox(height: AppSpacing.xl),
+
+          // Contact Info
+          _ContactCard(club: widget.club, profile: widget.profile),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileSection(
+    String title,
+    String content,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            content,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textPrimary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminsSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.admin_panel_settings_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Club Administrators', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Admins List
+          if (_loadingAdmins)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_admins.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                'No admins assigned to this club',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          else
+            ..._admins.asMap().entries.map((entry) {
+              final index = entry.key;
+              final admin = entry.value;
+              final user = admin['user'];
+              if (user == null) return const SizedBox.shrink();
+              return Padding(
+                padding: EdgeInsets.only(top: index == 0 ? 0 : AppSpacing.sm),
+                child: _buildAdminTile(
+                  name: user['name'] ?? 'Unknown',
+                  email: user['email'] ?? '',
+                  image: user['image'],
+                  isOwner: index == 0, // First admin is marked as primary
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminTile({
+    required String name,
+    required String email,
+    String? image,
+    required bool isOwner,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isOwner
+            ? AppColors.primary.withValues(alpha: 0.05)
+            : AppColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: isOwner
+              ? AppColors.primary.withValues(alpha: 0.2)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundImage: image != null && image.isNotEmpty
+                ? NetworkImage(image)
+                : null,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+            child: image == null || image.isEmpty
+                ? Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: AppTextStyles.labelLarge.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isOwner) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Text(
+                          'OWNER',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  email,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -583,12 +858,15 @@ class _ContactCard extends StatelessWidget {
               text: club.email!,
               onTap: () => _launchEmail(club.email!),
             ),
-          if (profile?.contactPhone != null)
+          if (profile?.contactPhone != null &&
+              profile!.contactPhone!.isNotEmpty)
             _ContactItem(
               icon: Icons.phone_outlined,
               text: profile!.contactPhone!,
               onTap: () => _launchPhone(profile!.contactPhone!),
-            ),
+            )
+          else
+            _ContactItem(icon: Icons.phone_outlined, text: 'No contact number'),
           // Always show location as IOE Pulchowk
           const _ContactItem(
             icon: Icons.location_on_outlined,

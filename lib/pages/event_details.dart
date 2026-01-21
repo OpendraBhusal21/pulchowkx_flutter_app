@@ -35,6 +35,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool _isLoading = true;
   String? _error;
 
+  // Admin features
+  bool _isClubOwner = false;
+  List<Map<String, dynamic>> _registeredStudents = [];
+  bool _loadingStudents = false;
+  Map<String, dynamic>? _extraDetails;
+  bool _isEditingDetails = false;
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +73,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           _isLoading = false;
         });
         _checkRegistrationStatus();
+        _checkAdminStatus();
+        _loadExtraDetails();
       }
     } catch (e) {
       if (mounted) {
@@ -96,6 +105,216 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           (e) => e.eventId == _fullEvent!.id && e.status == 'registered',
         );
       });
+    }
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _fullEvent == null) return;
+
+    try {
+      final userId = await _apiService.getDatabaseUserId() ?? user.uid;
+      final clubId = _fullEvent!.clubId;
+      final isAdmin = await _apiService.isClubAdminOrOwner(clubId, userId);
+      if (mounted) {
+        setState(() => _isClubOwner = isAdmin);
+        if (isAdmin) {
+          _loadRegisteredStudents();
+        }
+      }
+    } catch (e) {
+      print('Error checking admin status: $e');
+    }
+  }
+
+  Future<void> _loadExtraDetails() async {
+    if (_fullEvent == null) return;
+
+    try {
+      final details = await _apiService.getExtraEventDetails(_fullEvent!.id);
+      if (mounted && details != null) {
+        setState(() => _extraDetails = details);
+      }
+    } catch (e) {
+      print('Error loading extra details: $e');
+    }
+  }
+
+  Future<void> _loadRegisteredStudents() async {
+    if (_fullEvent == null) return;
+
+    setState(() => _loadingStudents = true);
+    try {
+      final students = await _apiService.getRegisteredStudents(_fullEvent!.id);
+      if (mounted) {
+        setState(() {
+          _registeredStudents = students;
+          _loadingStudents = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading registered students: $e');
+      if (mounted) {
+        setState(() => _loadingStudents = false);
+      }
+    }
+  }
+
+  Future<void> _showEditDetailsDialog() async {
+    final fullDescController = TextEditingController(
+      text: _extraDetails?['fullDescription'] ?? _fullEvent?.description ?? '',
+    );
+    final objectivesController = TextEditingController(
+      text: _extraDetails?['objectives'] ?? '',
+    );
+    final targetAudienceController = TextEditingController(
+      text: _extraDetails?['targetAudience'] ?? '',
+    );
+    final prerequisitesController = TextEditingController(
+      text: _extraDetails?['prerequisites'] ?? '',
+    );
+    final rulesController = TextEditingController(
+      text: _extraDetails?['rules'] ?? '',
+    );
+    final judgingCriteriaController = TextEditingController(
+      text: _extraDetails?['judgingCriteria'] ?? '',
+    );
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: const Text('Edit Event Details'),
+        titleTextStyle: AppTextStyles.h4,
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.9,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: fullDescController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: objectivesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Objectives',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: targetAudienceController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Target Audience',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: prerequisitesController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Prerequisites',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: rulesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Rules',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: judgingCriteriaController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Judging Criteria',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      setState(() => _isEditingDetails = true);
+      try {
+        final detailsData = {
+          'fullDescription': fullDescController.text,
+          'objectives': objectivesController.text,
+          'targetAudience': targetAudienceController.text,
+          'prerequisites': prerequisitesController.text,
+          'rules': rulesController.text,
+          'judgingCriteria': judgingCriteriaController.text,
+        };
+
+        Map<String, dynamic> response;
+        if (_extraDetails != null) {
+          response = await _apiService.updateExtraEventDetails(
+            _fullEvent!.id,
+            detailsData,
+          );
+        } else {
+          response = await _apiService.createExtraEventDetails(
+            _fullEvent!.id,
+            detailsData,
+          );
+        }
+
+        if (response['success'] == true) {
+          _showSnackBar('Event details updated successfully!');
+          // Update local state immediately
+          setState(() {
+            _extraDetails = {...?_extraDetails, ...detailsData};
+          });
+          // Also refresh from server to ensure sync
+          _loadExtraDetails();
+        } else {
+          _showSnackBar(
+            response['message'] ?? 'Failed to update details',
+            isError: true,
+          );
+        }
+      } catch (e) {
+        _showSnackBar('An error occurred', isError: true);
+      } finally {
+        if (mounted) {
+          setState(() => _isEditingDetails = false);
+        }
+      }
     }
   }
 
@@ -477,6 +696,176 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       ),
                     ),
                   ),
+                ],
+
+                // Admin Section: Edit Event Details Button
+                if (_isClubOwner) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isEditingDetails
+                          ? null
+                          : _showEditDetailsDialog,
+                      icon: _isEditingDetails
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.edit_rounded),
+                      label: Text(
+                        _isEditingDetails ? 'Saving...' : 'Edit Event Details',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Admin Section: Registered Students
+                if (_isClubOwner) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Registered Students',
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Text(
+                          '${_registeredStudents.length}',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  if (_loadingStudents)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSpacing.lg),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (_registeredStudents.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.people_outline_rounded,
+                              size: 48,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              'No students registered yet',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _registeredStudents.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, color: AppColors.border),
+                        itemBuilder: (context, index) {
+                          final student = _registeredStudents[index];
+                          final user = student['student'] ?? student;
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.1,
+                              ),
+                              child: Text(
+                                (user['name'] ?? 'U')[0].toUpperCase(),
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              user['name'] ?? 'Unknown',
+                              style: AppTextStyles.labelLarge,
+                            ),
+                            subtitle: Text(
+                              user['email'] ?? '',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            trailing: Builder(
+                              builder: (context) {
+                                final status =
+                                    student['status'] ?? 'registered';
+                                final isCancelled =
+                                    status.toLowerCase() == 'cancelled';
+                                final statusColor = isCancelled
+                                    ? AppColors.error
+                                    : AppColors.success;
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.sm,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    status.toUpperCase(),
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                 ],
 
                 // Register Button
