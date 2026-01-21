@@ -279,8 +279,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary.withOpacity(0.1),
-                    AppColors.accent.withOpacity(0.1),
+                    AppColors.primary.withValues(alpha: 0.1),
+                    AppColors.accent.withValues(alpha: 0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -560,7 +560,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   Widget _buildDropdownField() {
     return DropdownButtonFormField<String>(
-      value: _selectedEventType,
+      initialValue: _selectedEventType,
       decoration: InputDecoration(
         labelText: 'Event Type',
         prefixIcon: Icon(Icons.category, color: AppColors.primary),

@@ -156,8 +156,8 @@ class _CreateClubPageState extends State<CreateClubPage> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.accent.withOpacity(0.1),
-                    AppColors.primary.withOpacity(0.1),
+                    AppColors.accent.withValues(alpha: 0.1),
+                    AppColors.primary.withValues(alpha: 0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -170,7 +170,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.accent.withOpacity(0.2),
+                          color: AppColors.accent.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -304,7 +304,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                       height: 80,
                       width: 80,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
+                      errorBuilder: (_, _, _) => Icon(
                         Icons.broken_image,
                         color: Colors.grey.shade400,
                         size: 40,
