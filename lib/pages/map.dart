@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/widgets/chat_bot_widget.dart';
@@ -21,6 +22,7 @@ class _MapPageState extends State<MapPage> {
   bool _isStyleLoaded = false;
   bool _isSatellite = true; // Default to satellite view
   List<Map<String, dynamic>> _locations = [];
+  bool _iconsLoaded = false; // Track if icons have been loaded
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -285,24 +287,147 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  /// Add circle markers to the map
-  Future<void> _addMarkersToMap() async {
+  /// Load icon images for markers
+  Future<void> _loadIconImages() async {
     if (_mapController == null) return;
 
-    for (var location in _locations) {
-      final coords = location['coordinates'] as List<double>;
-      final iconType = location['icon'] as String;
-      final color = _getMarkerColor(iconType);
+    // Skip if icons are already loaded
+    if (_iconsLoaded) {
+      debugPrint('Icons already loaded, skipping...');
+      return;
+    }
 
-      await _mapController!.addCircle(
-        CircleOptions(
-          geometry: LatLng(coords[1], coords[0]),
-          circleRadius: 8,
-          circleColor: '#${color.toARGB32().toRadixString(16).substring(2)}',
-          circleStrokeWidth: 3,
-          circleStrokeColor: '#FFFFFF',
+    // Map of icon types to their network image URLs (matching website)
+    final iconUrls = {
+      'bank':
+          'https://png.pngtree.com/png-clipart/20230805/original/pngtree-bank-location-icon-from-business-bicolor-set-money-business-company-vector-picture-image_9698988.png',
+      'food': 'https://cdn-icons-png.freepik.com/512/11167/11167112.png',
+      'library': 'https://cdn-icons-png.freepik.com/512/7985/7985904.png',
+      'department': 'https://cdn-icons-png.flaticon.com/512/7906/7906888.png',
+      'temple': 'https://cdn-icons-png.flaticon.com/512/1183/1183391.png',
+      'gym': 'https://cdn-icons-png.flaticon.com/512/11020/11020519.png',
+      'football': 'https://cdn-icons-png.freepik.com/512/8893/8893610.png',
+      'cricket': 'https://i.postimg.cc/cLb6QFC1/download.png',
+      'sports': 'https://i.postimg.cc/mDW05pSw-/volleyball.png',
+      'hostel': 'https://cdn-icons-png.flaticon.com/512/7804/7804352.png',
+      'lab': 'https://cdn-icons-png.flaticon.com/256/12348/12348567.png',
+      'helipad': 'https://cdn-icons-png.flaticon.com/512/5695/5695654.png',
+      'parking':
+          'https://cdn.iconscout.com/icon/premium/png-256-thumb/parking-place-icon-svg-download-png-897308.png',
+      'electrical': 'https://cdn-icons-png.flaticon.com/512/9922/9922144.png',
+      'music': 'https://cdn-icons-png.flaticon.com/512/5905/5905923.png',
+      'energy': 'https://cdn-icons-png.flaticon.com/512/10053/10053795.png',
+      'helm':
+          'https://png.pngtree.com/png-vector/20221130/ourmid/pngtree-airport-location-pin-in-light-blue-color-png-image_6485369.png',
+      'garden': 'https://cdn-icons-png.flaticon.com/512/15359/15359437.png',
+      'store': 'https://cdn-icons-png.flaticon.com/512/3448/3448673.png',
+      'quarter': 'https://static.thenounproject.com/png/331579-200.png',
+      'robotics': 'https://cdn-icons-png.flaticon.com/512/10681/10681183.png',
+      'clinic': 'https://cdn-icons-png.flaticon.com/512/10714/10714002.png',
+      'badminton': 'https://static.thenounproject.com/png/198230-200.png',
+      'entrance': 'https://i.postimg.cc/jjLDcb6p/image-removebg-preview.png',
+      'office': 'https://cdn-icons-png.flaticon.com/512/3846/3846807.png',
+      'building': 'https://cdn-icons-png.flaticon.com/512/5193/5193760.png',
+      'block': 'https://cdn-icons-png.flaticon.com/512/3311/3311565.png',
+      'cave': 'https://cdn-icons-png.flaticon.com/512/210/210567.png',
+      'fountain':
+          'https://cdn.iconscout.com/icon/free/png-256/free-fountain-icon-svg-download-png-449881.png',
+      'water':
+          'https://static.vecteezy.com/system/resources/thumbnails/044/570/540/small_2x/single-water-drop-on-transparent-background-free-png.png',
+      'workshop': 'https://cdn-icons-png.flaticon.com/512/10747/10747285.png',
+      'toilet': 'https://cdn-icons-png.flaticon.com/512/5326/5326954.png',
+      'bridge': 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
+      'marker':
+          'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+    };
+
+    debugPrint('Starting to load ${iconUrls.length} icons...');
+    int loadedCount = 0;
+    int failedCount = 0;
+
+    // Load each icon
+    for (var entry in iconUrls.entries) {
+      try {
+        final response = await http.get(Uri.parse(entry.value));
+        if (response.statusCode == 200) {
+          await _mapController!.addImage(
+            '${entry.key}-icon',
+            response.bodyBytes,
+          );
+          loadedCount++;
+        } else {
+          debugPrint(
+            '⚠️  Failed to load icon ${entry.key}: HTTP ${response.statusCode}',
+          );
+          failedCount++;
+        }
+      } catch (e) {
+        debugPrint('⚠️  Error loading icon ${entry.key}: $e');
+        failedCount++;
+      }
+    }
+
+    _iconsLoaded = true; // Mark icons as loaded
+    debugPrint(
+      '✓ Successfully loaded $loadedCount/${iconUrls.length} icons ($failedCount failed)',
+    );
+  }
+
+  /// Add markers to the map using symbol layer with icons
+  Future<void> _addMarkersToMap() async {
+    if (_mapController == null || _locations.isEmpty) return;
+
+    try {
+      debugPrint('Adding markers for ${_locations.length} locations...');
+
+      // Check if markers already exist (to avoid duplicate source error)
+      // If they exist, remove them first before re-adding
+      try {
+        // Try to remove existing source and layer if they exist
+        await _mapController!.removeLayer('markers-layer');
+        await _mapController!.removeSource('markers-source');
+        debugPrint('Removed existing markers layer and source');
+      } catch (e) {
+        // If removal fails, it means they don't exist yet (first time)
+        debugPrint('No existing markers to remove (first time): $e');
+      }
+
+      // Load icon images first
+      await _loadIconImages();
+
+      // Create GeoJSON for all markers
+      final features = _locations.map((location) {
+        final coords = location['coordinates'] as List<double>;
+        final iconType = location['icon'] as String;
+
+        return {
+          'type': 'Feature',
+          'properties': {'icon': '$iconType-icon', 'title': location['title']},
+          'geometry': {'type': 'Point', 'coordinates': coords},
+        };
+      }).toList();
+
+      final geojson = {'type': 'FeatureCollection', 'features': features};
+
+      // Add GeoJSON source for markers
+      await _mapController!.addGeoJsonSource('markers-source', geojson);
+
+      // Add symbol layer for markers (above the mask)
+      await _mapController!.addSymbolLayer(
+        'markers-source',
+        'markers-layer',
+        SymbolLayerProperties(
+          iconImage: ['get', 'icon'], // Use the icon property from each feature
+          iconSize: 0.15, // Scale down the icons to 15% of original
+          iconAllowOverlap: true,
+          iconIgnorePlacement: false,
         ),
       );
+
+      debugPrint('✓ Successfully added ${_locations.length} icon markers');
+    } catch (e) {
+      debugPrint('✗ Error adding markers: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
     }
   }
 
