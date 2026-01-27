@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -20,9 +21,10 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   MapLibreMapController? _mapController;
   bool _isStyleLoaded = false;
-  bool _isSatellite = true; // Default to satellite view
+  bool _isSatellite = false; // Default to map view
   List<Map<String, dynamic>> _locations = [];
   Map<String, Uint8List> _iconCache = {}; // Cache for icon images
+  Set<String> _failedIcons = {}; // Track icons that failed to load
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -46,6 +48,7 @@ class _MapPageState extends State<MapPage> {
   static const String _satelliteStyle = '''
 {
   "version": 8,
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   "sources": {
     "arcgis-world-imagery": {
       "type": "raster",
@@ -88,48 +91,58 @@ class _MapPageState extends State<MapPage> {
   /// Load GeoJSON data from assets
   Future<void> _loadGeoJSON() async {
     try {
-      final String jsonString = await rootBundle.loadString(
-        'assets/geojson/pulchowk.json',
-      );
-      final Map<String, dynamic> geojson = json.decode(jsonString);
-      final List<dynamic> features = geojson['features'] ?? [];
+      // Only parse GeoJSON if not already loaded
+      if (_locations.isEmpty) {
+        final String jsonString = await rootBundle.loadString(
+          'assets/geojson/pulchowk.json',
+        );
+        final Map<String, dynamic> geojson = json.decode(jsonString);
+        final List<dynamic> features = geojson['features'] ?? [];
 
-      // Extract location data (skip first feature which is boundary mask)
-      final locations = <Map<String, dynamic>>[];
-      for (int i = 1; i < features.length; i++) {
-        final feature = features[i];
-        final props = feature['properties'] ?? {};
-        final geometry = feature['geometry'] ?? {};
+        // Extract location data (skip first feature which is boundary mask)
+        final locations = <Map<String, dynamic>>[];
+        for (int i = 1; i < features.length; i++) {
+          final feature = features[i];
+          final props = feature['properties'] ?? {};
+          final geometry = feature['geometry'] ?? {};
 
-        if (props['description'] != null) {
-          // Calculate center for polygons, use coordinates for points
-          List<double> coords;
-          if (geometry['type'] == 'Point') {
-            coords = List<double>.from(geometry['coordinates']);
-          } else if (geometry['type'] == 'Polygon') {
-            coords = _getPolygonCentroid(geometry['coordinates'][0]);
-          } else {
-            continue;
+          if (props['description'] != null) {
+            // Calculate center for polygons, use coordinates for points
+            List<double> coords;
+            if (geometry['type'] == 'Point') {
+              coords = List<double>.from(geometry['coordinates']);
+            } else if (geometry['type'] == 'Polygon') {
+              coords = _getPolygonCentroid(geometry['coordinates'][0]);
+            } else {
+              continue;
+            }
+
+            locations.add({
+              'title': props['description'] ?? props['title'] ?? 'Unknown',
+              'description': props['about'] ?? '',
+              'images': props['image'],
+              'coordinates': coords,
+              'icon': _getIconForDescription(props['description'] ?? ''),
+            });
           }
-
-          locations.add({
-            'title': props['description'] ?? props['title'] ?? 'Unknown',
-            'description': props['about'] ?? '',
-            'images': props['image'],
-            'coordinates': coords,
-            'icon': _getIconForDescription(props['description'] ?? ''),
-          });
         }
+
+        setState(() {
+          _locations = locations;
+        });
       }
 
-      setState(() {
-        _locations = locations;
-      });
-
-      // Add campus mask and markers to map
+      // Always re-add campus mask and markers when style loads
+      // (MapLibre clears all images/layers when style changes)
       if (_mapController != null && _isStyleLoaded) {
+        debugPrint(
+          '🎯 Re-adding campus mask and markers (isSatellite: $_isSatellite)',
+        );
         await _addCampusMask();
+        // Small delay to ensure mask layer is fully added before adding markers on top
+        await Future.delayed(const Duration(milliseconds: 100));
         await _addMarkersToMap();
+        debugPrint('✅ Finished re-adding markers');
       }
     } catch (e) {
       debugPrint('Error loading GeoJSON: $e');
@@ -267,6 +280,7 @@ class _MapPageState extends State<MapPage> {
 
       // Add fill layer with filter for only the mask feature (has no description)
       // The first feature is a polygon-with-hole: outer ring covers world, inner ring is campus
+      // For satellite view, add the mask right above the satellite layer
       await _mapController!.addFillLayer(
         'campus-mask-source',
         'campus-mask',
@@ -279,7 +293,7 @@ class _MapPageState extends State<MapPage> {
           'all',
           [
             '==',
-            ['\$type'],
+            ['geometry-type'],
             'Polygon',
           ],
           [
@@ -295,7 +309,34 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  /// Load icon images for markers
+  /// Create a fallback colored circle marker when icon fails to load
+  Future<Uint8List> _createFallbackMarker(String iconType) async {
+    final color = _getMarkerColor(iconType);
+    final size = 280; // Increased from 40
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Draw filled circle
+    final fillPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 2, fillPaint);
+
+    // Draw white border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 2, borderPaint);
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size, size);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  /// Load icon images for markers (parallel loading with fallback)
   Future<void> _loadIconImages() async {
     if (_mapController == null) return;
 
@@ -343,45 +384,63 @@ class _MapPageState extends State<MapPage> {
           'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
     };
 
-    debugPrint('Starting to load ${iconUrls.length} icons...');
-    int loadedCount = 0;
-    int cachedCount = 0;
-    int failedCount = 0;
+    debugPrint('Starting to load ${iconUrls.length} icons in parallel...');
+    final startTime = DateTime.now();
 
-    // Load each icon
-    for (var entry in iconUrls.entries) {
-      try {
-        final iconName = '${entry.key}-icon';
+    // Load all icons in parallel using Future.wait
+    final results = await Future.wait(
+      iconUrls.entries.map((entry) async {
+        try {
+          final iconName = '${entry.key}-icon';
 
-        // Check if already in cache
-        if (_iconCache.containsKey(entry.key)) {
-          await _mapController!.addImage(iconName, _iconCache[entry.key]!);
-          cachedCount++;
-          continue;
+          // Check if already in cache
+          if (_iconCache.containsKey(entry.key)) {
+            await _mapController!.addImage(iconName, _iconCache[entry.key]!);
+            return {'status': 'cached', 'icon': entry.key};
+          }
+
+          // Download icon with timeout
+          final response = await http
+              .get(Uri.parse(entry.value))
+              .timeout(const Duration(seconds: 5));
+
+          if (response.statusCode == 200) {
+            final bytes = response.bodyBytes;
+            _iconCache[entry.key] = bytes;
+            await _mapController!.addImage(iconName, bytes);
+            return {'status': 'loaded', 'icon': entry.key};
+          } else {
+            throw Exception('HTTP ${response.statusCode}');
+          }
+        } catch (e) {
+          // Create fallback marker on error
+          debugPrint('⚠️  Failed to load ${entry.key}, using fallback: $e');
+          _failedIcons.add(entry.key);
+
+          try {
+            final fallbackBytes = await _createFallbackMarker(entry.key);
+            final iconName = '${entry.key}-icon';
+            await _mapController!.addImage(iconName, fallbackBytes);
+            return {'status': 'fallback', 'icon': entry.key};
+          } catch (fallbackError) {
+            debugPrint('✗ Fallback failed for ${entry.key}: $fallbackError');
+            return {'status': 'failed', 'icon': entry.key};
+          }
         }
+      }),
+    );
 
-        // Not in cache, download it
-        final response = await http.get(Uri.parse(entry.value));
-        if (response.statusCode == 200) {
-          final bytes = response.bodyBytes;
-          _iconCache[entry.key] = bytes; // Add to cache
+    // Count results
+    final loadedCount = results.where((r) => r['status'] == 'loaded').length;
+    final cachedCount = results.where((r) => r['status'] == 'cached').length;
+    final fallbackCount = results
+        .where((r) => r['status'] == 'fallback')
+        .length;
+    final failedCount = results.where((r) => r['status'] == 'failed').length;
 
-          await _mapController!.addImage(iconName, bytes);
-          loadedCount++;
-        } else {
-          debugPrint(
-            '⚠️  Failed to load icon ${entry.key}: HTTP ${response.statusCode}',
-          );
-          failedCount++;
-        }
-      } catch (e) {
-        debugPrint('⚠️  Error loading icon ${entry.key}: $e');
-        failedCount++;
-      }
-    }
-
+    final duration = DateTime.now().difference(startTime);
     debugPrint(
-      '✓ Icons: $loadedCount loaded new, $cachedCount from cache ($failedCount failed)',
+      '✓ Icons loaded in ${duration.inMilliseconds}ms: $loadedCount new, $cachedCount cached, $fallbackCount fallback, $failedCount failed',
     );
   }
 
@@ -390,7 +449,7 @@ class _MapPageState extends State<MapPage> {
     if (_mapController == null || _locations.isEmpty) return;
 
     try {
-      debugPrint('Adding markers for ${_locations.length} locations...');
+      debugPrint('📍 Adding markers for ${_locations.length} locations...');
 
       // Check if markers already exist (to avoid duplicate source error)
       // If they exist, remove them first before re-adding
@@ -398,13 +457,14 @@ class _MapPageState extends State<MapPage> {
         // Try to remove existing source and layer if they exist
         await _mapController!.removeLayer('markers-layer');
         await _mapController!.removeSource('markers-source');
-        debugPrint('Removed existing markers layer and source');
+        debugPrint('🗑️  Removed existing markers layer and source');
       } catch (e) {
         // If removal fails, it means they don't exist yet (first time)
-        debugPrint('No existing markers to remove (first time): $e');
+        debugPrint('ℹ️  No existing markers to remove (first time): $e');
       }
 
       // Load icon images first
+      debugPrint('🖼️  Loading icon images...');
       await _loadIconImages();
 
       // Create GeoJSON for all markers
@@ -424,15 +484,39 @@ class _MapPageState extends State<MapPage> {
       // Add GeoJSON source for markers
       await _mapController!.addGeoJsonSource('markers-source', geojson);
 
-      // Add symbol layer for markers (above the mask)
+      // Add symbol layer for markers with labels (above the mask)
       await _mapController!.addSymbolLayer(
         'markers-source',
         'markers-layer',
         SymbolLayerProperties(
-          iconImage: ['get', 'icon'], // Use the icon property from each feature
-          iconSize: 0.15, // Scale down the icons to 15% of original
-          iconAllowOverlap: true,
-          iconIgnorePlacement: false,
+          // Icon settings
+          iconImage: ['get', 'icon'],
+          iconSize: [
+            'match',
+            ['get', 'icon'],
+            'cricket-icon', 0.1,
+            'sports-icon', 0.11,
+            'marker-icon', 0.08,
+            'parking-icon', 0.3,
+            'badminton-icon', 0.3,
+            'lab-icon', 0.24,
+            'quarter-icon', 0.3,
+            'fountain-icon', 0.3,
+            0.12, // default size
+          ],
+          iconAllowOverlap: false, // Hide icons when overlapping
+          iconOptional: true, // Make icon optional when it would overlap
+          // Text label settings
+          textField: ['get', 'title'],
+          textSize: 10,
+          textAnchor: 'top',
+          textOffset: [0, 1.5],
+          textAllowOverlap: false, // Prevent label collision
+          textOptional: true, // Hide text if it collides
+          textColor: _isSatellite ? '#FFFFFF' : '#000000',
+          textHaloColor: _isSatellite ? '#000000' : '#FFFFFF',
+          textHaloWidth: 1.5,
+          textMaxWidth: 8,
         ),
       );
 
@@ -448,6 +532,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _onStyleLoaded() {
+    debugPrint('🗺️  onStyleLoaded called - isSatellite: $_isSatellite');
     setState(() {
       _isStyleLoaded = true;
     });
@@ -538,6 +623,9 @@ class _MapPageState extends State<MapPage> {
 
   /// Toggle between map and satellite view
   void _toggleMapType() {
+    debugPrint(
+      '🔄 Toggling map type from ${_isSatellite ? "satellite" : "map"} to ${!_isSatellite ? "satellite" : "map"}',
+    );
     setState(() {
       _isSatellite = !_isSatellite;
       _isStyleLoaded = false;
