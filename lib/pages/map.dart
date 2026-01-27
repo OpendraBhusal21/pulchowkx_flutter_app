@@ -22,7 +22,7 @@ class _MapPageState extends State<MapPage> {
   bool _isStyleLoaded = false;
   bool _isSatellite = true; // Default to satellite view
   List<Map<String, dynamic>> _locations = [];
-  bool _iconsLoaded = false; // Track if icons have been loaded
+  Map<String, Uint8List> _iconCache = {}; // Cache for icon images
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -254,6 +254,14 @@ class _MapPageState extends State<MapPage> {
       );
       final Map<String, dynamic> geojson = json.decode(jsonString);
 
+      // Check if mask source/layer already exists and remove if so
+      try {
+        await _mapController!.removeLayer('campus-mask');
+        await _mapController!.removeSource('campus-mask-source');
+      } catch (e) {
+        // Ignore if not present
+      }
+
       // Add GeoJSON source with full feature collection
       await _mapController!.addGeoJsonSource('campus-mask-source', geojson);
 
@@ -290,12 +298,6 @@ class _MapPageState extends State<MapPage> {
   /// Load icon images for markers
   Future<void> _loadIconImages() async {
     if (_mapController == null) return;
-
-    // Skip if icons are already loaded
-    if (_iconsLoaded) {
-      debugPrint('Icons already loaded, skipping...');
-      return;
-    }
 
     // Map of icon types to their network image URLs (matching website)
     final iconUrls = {
@@ -343,17 +345,28 @@ class _MapPageState extends State<MapPage> {
 
     debugPrint('Starting to load ${iconUrls.length} icons...');
     int loadedCount = 0;
+    int cachedCount = 0;
     int failedCount = 0;
 
     // Load each icon
     for (var entry in iconUrls.entries) {
       try {
+        final iconName = '${entry.key}-icon';
+
+        // Check if already in cache
+        if (_iconCache.containsKey(entry.key)) {
+          await _mapController!.addImage(iconName, _iconCache[entry.key]!);
+          cachedCount++;
+          continue;
+        }
+
+        // Not in cache, download it
         final response = await http.get(Uri.parse(entry.value));
         if (response.statusCode == 200) {
-          await _mapController!.addImage(
-            '${entry.key}-icon',
-            response.bodyBytes,
-          );
+          final bytes = response.bodyBytes;
+          _iconCache[entry.key] = bytes; // Add to cache
+
+          await _mapController!.addImage(iconName, bytes);
           loadedCount++;
         } else {
           debugPrint(
@@ -367,9 +380,8 @@ class _MapPageState extends State<MapPage> {
       }
     }
 
-    _iconsLoaded = true; // Mark icons as loaded
     debugPrint(
-      '✓ Successfully loaded $loadedCount/${iconUrls.length} icons ($failedCount failed)',
+      '✓ Icons: $loadedCount loaded new, $cachedCount from cache ($failedCount failed)',
     );
   }
 
@@ -542,7 +554,7 @@ class _MapPageState extends State<MapPage> {
         children: [
           // MapLibre Map
           MapLibreMap(
-            key: ValueKey(_isSatellite), // Force rebuild on style change
+            // key: ValueKey(_isSatellite), // Removed to allow smooth style transition without rebuilding view
             styleString: _currentStyle,
             initialCameraPosition: const CameraPosition(
               target: _pulchowkCenter,
