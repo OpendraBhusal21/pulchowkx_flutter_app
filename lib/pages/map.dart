@@ -21,7 +21,7 @@ class _MapPageState extends State<MapPage> {
   bool _isStyleLoaded = false;
   bool _isSatellite = true; // Default to satellite view
   List<Map<String, dynamic>> _locations = [];
-  List<List<double>>? _campusBoundaryCoords;
+
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -34,10 +34,10 @@ class _MapPageState extends State<MapPage> {
   );
   static const double _initialZoom = 17.0;
 
-  // Camera bounds to restrict map view to campus area
+  // Camera bounds to restrict map view to campus area (tightened to actual campus extent)
   static final LatLngBounds _campusBounds = LatLngBounds(
-    southwest: const LatLng(27.678215308346253, 85.31217093201366),
-    northeast: const LatLng(27.686583278518555, 85.329947502668),
+    southwest: const LatLng(27.6792, 85.3165),
+    northeast: const LatLng(27.6848, 85.3262),
   );
 
   // Satellite style (ArcGIS World Imagery)
@@ -91,18 +91,6 @@ class _MapPageState extends State<MapPage> {
       );
       final Map<String, dynamic> geojson = json.decode(jsonString);
       final List<dynamic> features = geojson['features'] ?? [];
-
-      // First feature is the campus boundary polygon
-      if (features.isNotEmpty) {
-        final firstFeature = features[0];
-        final geometry = firstFeature['geometry'] ?? {};
-        if (geometry['type'] == 'Polygon') {
-          final coords = geometry['coordinates'][0] as List<dynamic>;
-          _campusBoundaryCoords = coords
-              .map((c) => [c[0] as double, c[1] as double])
-              .toList();
-        }
-      }
 
       // Extract location data (skip first feature which is boundary mask)
       final locations = <Map<String, dynamic>>[];
@@ -255,34 +243,43 @@ class _MapPageState extends State<MapPage> {
 
   /// Add campus boundary mask as a fill layer
   Future<void> _addCampusMask() async {
-    if (_mapController == null || _campusBoundaryCoords == null) return;
+    if (_mapController == null) return;
 
     try {
-      // Add GeoJSON source for campus boundary
-      await _mapController!.addGeoJsonSource('campus-boundary', {
-        'type': 'FeatureCollection',
-        'features': [
-          {
-            'type': 'Feature',
-            'properties': {},
-            'geometry': {
-              'type': 'Polygon',
-              'coordinates': [_campusBoundaryCoords],
-            },
-          },
-        ],
-      });
+      // Load full pulchowk.json to get the proper polygon-with-hole mask
+      final String jsonString = await rootBundle.loadString(
+        'assets/geojson/pulchowk.json',
+      );
+      final Map<String, dynamic> geojson = json.decode(jsonString);
 
-      // Add fill layer for mask (semi-transparent overlay)
+      // Add GeoJSON source with full feature collection
+      await _mapController!.addGeoJsonSource('campus-mask-source', geojson);
+
+      // Add fill layer with filter for only the mask feature (has no description)
+      // The first feature is a polygon-with-hole: outer ring covers world, inner ring is campus
       await _mapController!.addFillLayer(
-        'campus-boundary',
+        'campus-mask-source',
         'campus-mask',
         FillLayerProperties(
-          fillColor: _isSatellite ? '#000000' : '#FFFFFF',
-          fillOpacity: _isSatellite ? 0.0 : 0.85,
-          fillOutlineColor: '#333333',
+          fillColor: '#FFFFFF',
+          fillOpacity: 0.98,
+          fillOutlineColor: '#4A5568',
         ),
+        filter: [
+          'all',
+          [
+            '==',
+            ['\$type'],
+            'Polygon',
+          ],
+          [
+            '!',
+            ['has', 'description'],
+          ],
+        ],
       );
+
+      debugPrint('Campus mask added successfully');
     } catch (e) {
       debugPrint('Error adding campus mask: $e');
     }
@@ -435,7 +432,11 @@ class _MapPageState extends State<MapPage> {
             trackCameraPosition: true,
             compassEnabled: true,
             cameraTargetBounds: CameraTargetBounds(_campusBounds),
-            minMaxZoomPreference: const MinMaxZoomPreference(15, 20),
+            minMaxZoomPreference: const MinMaxZoomPreference(16, 20),
+            scrollGesturesEnabled: true,
+            tiltGesturesEnabled: false,
+            rotateGesturesEnabled: true,
+            doubleClickZoomEnabled: true,
             attributionButtonMargins: const Point(8, 92),
           ),
 
