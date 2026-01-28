@@ -446,7 +446,10 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.all(AppSpacing.lg),
-        child: ShimmerLoader(child: GridShimmer()),
+        child: GridShimmer(
+          itemShimmer: BookCardShimmer(),
+          childAspectRatio: 0.65,
+        ),
       );
     }
 
@@ -501,7 +504,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
             itemCount: _listings.length + (_isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= _listings.length) {
-                return const Center(child: ShimmerLoader(child: CardShimmer()));
+                return const BookCardShimmer();
               }
               return AnimationConfiguration.staggeredGrid(
                 position: index,

@@ -54,11 +54,20 @@ class EmptyStateWidget extends StatelessWidget {
   }
 
   Widget _buildIllustration() {
+    if (type == EmptyStateType.books) {
+      return Image.asset(
+        'assets/images/sleeping_book.png',
+        height: 180,
+        fit: BoxFit.contain,
+      );
+    }
+
     IconData icon;
     Color color;
 
     switch (type) {
-      case EmptyStateType.books:
+      case EmptyStateType
+          .books: // Fallback if image fails or for consistency in logic
         icon = Icons.menu_book_rounded;
         color = Colors.teal;
         break;

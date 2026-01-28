@@ -5,6 +5,7 @@ import 'package:pulchowkx_app/pages/event_details.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/event_card.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class MyEnrollments extends StatefulWidget {
   const MyEnrollments({super.key});
@@ -82,10 +83,10 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
             future: _enrollmentsFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                return Column(
+                  children: List.generate(
+                    2,
+                    (index) => const EventCardShimmer(type: EventCardType.list),
                   ),
                 );
               }

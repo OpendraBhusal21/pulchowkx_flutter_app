@@ -12,6 +12,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -23,6 +24,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   bool _isAdmin = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -31,9 +33,18 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _checkAdminStatus() async {
-    final isAdmin = await _apiService.isAdmin();
-    if (mounted) {
-      setState(() => _isAdmin = isAdmin);
+    try {
+      final isAdmin = await _apiService.isAdmin();
+      if (mounted) {
+        setState(() {
+          _isAdmin = isAdmin;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -164,85 +175,99 @@ class _DashboardPageState extends State<DashboardPage> {
               const SizedBox(height: AppSpacing.lg),
 
               // Profile Card
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(color: AppColors.border),
-                  boxShadow: AppShadows.sm,
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Row(
+              _isLoading
+                  ? const DashboardHeaderShimmer()
+                  : Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.border),
+                        boxShadow: AppShadows.sm,
+                      ),
+                      child: Column(
                         children: [
-                          // Avatar with gradient border
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              gradient: AppColors.primaryGradient,
-                              shape: BoxShape.circle,
-                            ),
-                            child: CircleAvatar(
-                              radius: 36,
-                              backgroundColor: AppColors.surface,
-                              backgroundImage: photoUrl != null
-                                  ? CachedNetworkImageProvider(photoUrl)
-                                  : null,
-                              child: photoUrl == null
-                                  ? const Icon(
-                                      Icons.person_rounded,
-                                      size: 36,
-                                      color: AppColors.primary,
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          Padding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: Row(
                               children: [
-                                Text(displayName, style: AppTextStyles.h4),
-                                const SizedBox(height: 4),
-                                Text(email, style: AppTextStyles.bodySmall),
-                                const SizedBox(height: AppSpacing.sm),
+                                // Avatar with gradient border
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
+                                  padding: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
-                                    color: _isAdmin
-                                        ? AppColors.accentLight
-                                        : AppColors.successLight,
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.full,
-                                    ),
+                                    gradient: AppColors.primaryGradient,
+                                    shape: BoxShape.circle,
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: CircleAvatar(
+                                    radius: 36,
+                                    backgroundColor: AppColors.surface,
+                                    backgroundImage: photoUrl != null
+                                        ? CachedNetworkImageProvider(photoUrl)
+                                        : null,
+                                    child: photoUrl == null
+                                        ? const Icon(
+                                            Icons.person_rounded,
+                                            size: 36,
+                                            color: AppColors.primary,
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        _isAdmin
-                                            ? Icons.admin_panel_settings
-                                            : Icons.verified_rounded,
-                                        size: 12,
-                                        color: _isAdmin
-                                            ? AppColors.accent
-                                            : AppColors.success,
-                                      ),
-                                      const SizedBox(width: 4),
                                       Text(
-                                        _isAdmin ? 'Admin' : 'Active Student',
-                                        style: AppTextStyles.labelSmall
-                                            .copyWith(
+                                        displayName,
+                                        style: AppTextStyles.h4,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        email,
+                                        style: AppTextStyles.bodySmall,
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _isAdmin
+                                              ? AppColors.accentLight
+                                              : AppColors.successLight,
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.full,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _isAdmin
+                                                  ? Icons.admin_panel_settings
+                                                  : Icons.verified_rounded,
+                                              size: 12,
                                               color: _isAdmin
                                                   ? AppColors.accent
                                                   : AppColors.success,
-                                              fontWeight: FontWeight.w600,
                                             ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              _isAdmin
+                                                  ? 'Admin'
+                                                  : 'Active Student',
+                                              style: AppTextStyles.labelSmall
+                                                  .copyWith(
+                                                    color: _isAdmin
+                                                        ? AppColors.accent
+                                                        : AppColors.success,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -250,33 +275,30 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                           ),
+                          Container(height: 1, color: AppColors.border),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.md,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 14,
+                                  color: AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Member since ${user?.metadata.creationTime?.year ?? 2026}',
+                                  style: AppTextStyles.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    Container(height: 1, color: AppColors.border),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.md,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today_rounded,
-                            size: 14,
-                            color: AppColors.textMuted,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Member since ${user?.metadata.creationTime?.year ?? 2026}',
-                            style: AppTextStyles.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: AppSpacing.xl),
 
               // Event Enrollments Section
@@ -284,136 +306,150 @@ class _DashboardPageState extends State<DashboardPage> {
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Quick Actions Grid
-              Text('Quick Actions', style: AppTextStyles.h4),
-              const SizedBox(height: AppSpacing.md),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 600;
-                  final cards = [
-                    if (_isAdmin)
-                      _QuickActionCard(
-                        icon: Icons.add_circle_outline,
-                        title: 'Create Club',
-                        description: 'Start a new club community.',
-                        color: Colors.purple,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateClubPage(),
+              _isLoading
+                  ? GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: AppSpacing.md,
+                      crossAxisSpacing: AppSpacing.md,
+                      childAspectRatio: 1.5,
+                      children: const [
+                        QuickActionShimmer(),
+                        QuickActionShimmer(),
+                        QuickActionShimmer(),
+                        QuickActionShimmer(),
+                      ],
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 600;
+                        final cards = [
+                          if (_isAdmin)
+                            _QuickActionCard(
+                              icon: Icons.add_circle_outline,
+                              title: 'Create Club',
+                              description: 'Start a new club community.',
+                              color: Colors.purple,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const CreateClubPage(),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    _QuickActionCard(
-                      icon: Icons.groups_rounded,
-                      title: 'Campus Clubs',
-                      description:
-                          'Explore clubs and discover upcoming events.',
-                      color: AppColors.accent,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ClubsPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.map_rounded,
-                      title: 'Campus Map',
-                      description:
-                          'Navigate the campus, find classrooms, and explore.',
-                      color: AppColors.primary,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MapPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.menu_book_rounded,
-                      title: 'Book Marketplace',
-                      description:
-                          'Buy and sell textbooks with fellow students.',
-                      color: Colors.teal,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const BookMarketplacePage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.school_rounded,
-                      title: 'Classroom',
-                      description:
-                          'Track subjects, assignments, and submissions.',
-                      color: Colors.indigo,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ClassroomPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.settings_rounded,
-                      title: 'Settings',
-                      description: 'Account settings and preferences.',
-                      color: AppColors.textSecondary,
-                      onTap: null,
-                    ),
-                  ];
-
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: cards
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                  right: entry.key < cards.length - 1
-                                      ? AppSpacing.md
-                                      : 0,
+                          _QuickActionCard(
+                            icon: Icons.groups_rounded,
+                            title: 'Campus Clubs',
+                            description:
+                                'Explore clubs and discover upcoming events.',
+                            color: AppColors.accent,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ClubsPage(),
                                 ),
-                                child: entry.value,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    );
-                  }
-
-                  return Column(
-                    children: cards
-                        .map(
-                          (card) => Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppSpacing.md,
-                            ),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: card,
-                            ),
+                              );
+                            },
                           ),
-                        )
-                        .toList(),
-                  );
-                },
-              ),
+                          _QuickActionCard(
+                            icon: Icons.map_rounded,
+                            title: 'Campus Map',
+                            description:
+                                'Navigate the campus, find classrooms, and explore.',
+                            color: AppColors.primary,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const MapPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _QuickActionCard(
+                            icon: Icons.menu_book_rounded,
+                            title: 'Book Marketplace',
+                            description:
+                                'Buy and sell textbooks with fellow students.',
+                            color: Colors.teal,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const BookMarketplacePage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _QuickActionCard(
+                            icon: Icons.school_rounded,
+                            title: 'Classroom',
+                            description:
+                                'Track subjects, assignments, and submissions.',
+                            color: Colors.indigo,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ClassroomPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          _QuickActionCard(
+                            icon: Icons.settings_rounded,
+                            title: 'Settings',
+                            description: 'Account settings and preferences.',
+                            color: AppColors.textSecondary,
+                            onTap: null,
+                          ),
+                        ];
+
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: cards
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        right: entry.key < cards.length - 1
+                                            ? AppSpacing.md
+                                            : 0,
+                                      ),
+                                      child: entry.value,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        }
+
+                        return Column(
+                          children: cards
+                              .map(
+                                (card) => Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.md,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: card,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
+                    ),
             ],
           ),
         ),

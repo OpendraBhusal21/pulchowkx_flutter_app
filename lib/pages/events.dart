@@ -69,7 +69,7 @@ class _EventsPageState extends State<EventsPage> {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.all(AppSpacing.lg),
-                        child: ShimmerLoader(child: GridShimmer()),
+                        child: GridShimmer(itemShimmer: EventCardShimmer()),
                       ),
                     ),
                   ],
@@ -355,25 +355,6 @@ class _EventsPageState extends State<EventsPage> {
             childCount: events.length,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptySection(String message) {
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-      ),
-      child: Text(
-        message,
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.textSecondary,
-        ),
-        textAlign: TextAlign.center,
       ),
     );
   }

@@ -154,7 +154,10 @@ class _ClubsPageState extends State<ClubsPage> {
                     return const SliverPadding(
                       padding: EdgeInsets.all(AppSpacing.lg),
                       sliver: SliverToBoxAdapter(
-                        child: ShimmerLoader(child: GridShimmer()),
+                        child: GridShimmer(
+                          itemShimmer: ClubCardShimmer(),
+                          childAspectRatio: 0.85,
+                        ),
                       ),
                     );
                   }
@@ -225,45 +228,6 @@ class _ClubsPageState extends State<ClubsPage> {
               const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: AppShadows.sm,
-              ),
-              child: const Icon(
-                Icons.groups_outlined,
-                size: 48,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'No Clubs Found',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'The campus is quiet for now. Check back later!',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

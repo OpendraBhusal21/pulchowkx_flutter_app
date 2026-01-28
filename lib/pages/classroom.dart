@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
@@ -115,8 +116,9 @@ class _ClassroomPageState extends State<ClassroomPage> {
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+            ? const Padding(
+                padding: EdgeInsets.all(AppSpacing.lg),
+                child: ClassroomShimmer(),
               )
             : _errorMessage != null
             ? _buildError()

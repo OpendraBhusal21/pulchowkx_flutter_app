@@ -718,7 +718,7 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
                 )
               else ...[
                 DropdownButtonFormField<Faculty>(
-                  value: _selectedFaculty,
+                  initialValue: _selectedFaculty,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Faculty',
@@ -776,7 +776,7 @@ class _AddTeacherSubjectDialogState extends State<AddTeacherSubjectDialog> {
                 ],
                 if (_availableSubjects.isNotEmpty)
                   DropdownButtonFormField<Subject>(
-                    value: _selectedSubject,
+                    initialValue: _selectedSubject,
                     decoration: const InputDecoration(
                       labelText: 'Subject',
                       border: OutlineInputBorder(),
