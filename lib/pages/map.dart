@@ -636,36 +636,39 @@ class _MapPageState extends State<MapPage> {
   }
 
   /// Fly to a location on the map
-  void _flyToLocation(
-    Map<String, dynamic> location, {
-    bool showPopup = true,
-  }) async {
+  void _flyToLocation(Map<String, dynamic> location, {bool showPopup = true}) {
     if (_mapController == null) return;
 
     final coords = location['coordinates'] as List<double>;
 
-    // Close search suggestions and unfocus first
-    setState(() {
-      _showSuggestions = false;
-      _searchQuery = location['title'];
-      _searchController.text = location['title'];
+    // Use addPostFrameCallback to avoid setState during build phase or concurrent focus changes
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      // Unfocus first within the callback
+      _searchFocusNode.unfocus();
+
+      setState(() {
+        _showSuggestions = false;
+        _searchQuery = '';
+        _searchController.clear(); // Clear the search box
+      });
+
+      // Wait for keyboard to dismiss before animating
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Now animate camera after UI has settled
+      if (_mapController != null && mounted) {
+        await _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(coords[1], coords[0]), 19),
+        );
+      }
+
+      // Show location details after animation completes (only if requested)
+      if (showPopup && mounted) {
+        _showLocationDetails(location);
+      }
     });
-    _searchFocusNode.unfocus();
-
-    // Wait for keyboard to dismiss before animating
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    // Now animate camera after UI has settled
-    if (_mapController != null && mounted) {
-      await _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(coords[1], coords[0]), 19),
-      );
-    }
-
-    // Show location details after animation completes (only if requested)
-    if (showPopup && mounted) {
-      _showLocationDetails(location);
-    }
   }
 
   /// Get filtered suggestions based on search query
@@ -682,13 +685,77 @@ class _MapPageState extends State<MapPage> {
   void _handleChatBotLocations(List<ChatBotLocation> locations, String action) {
     if (locations.isEmpty || _mapController == null) return;
 
-    // Fly to the first location
-    final first = locations.first;
-    _mapController!.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(first.lat, first.lng), 19),
-    );
-
     debugPrint('Chatbot action: $action at ${locations.length} locations');
+
+    // Use addPostFrameCallback to avoid setState during build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      if (action == 'show_route' && locations.length >= 2) {
+        // Find start and end locations based on role
+        ChatBotLocation? startLoc;
+        ChatBotLocation? endLoc;
+
+        for (final loc in locations) {
+          if (loc.role == 'start') {
+            startLoc = loc;
+          } else if (loc.role == 'end' || loc.role == 'destination') {
+            endLoc = loc;
+          }
+        }
+
+        // If roles not specified, use first as start and last as end
+        startLoc ??= locations.first;
+        endLoc ??= locations.last;
+
+        // Start navigation mode with the route
+        setState(() {
+          _isNavigating = true;
+          _isNavigationPanelExpanded = true;
+          _startPoint = {
+            'coords': [startLoc!.lng, startLoc.lat],
+            'name': startLoc.buildingName,
+          };
+          _endPoint = {
+            'coords': [endLoc!.lng, endLoc.lat],
+            'name': endLoc.buildingName,
+          };
+          _routeCoordinates = null;
+          _routeDistance = '';
+          _routeDuration = '';
+        });
+
+        // Get directions and draw route
+        _getDirections();
+
+        // Zoom to show both points
+        final bounds = LatLngBounds(
+          southwest: LatLng(
+            min(startLoc.lat, endLoc.lat) - 0.001,
+            min(startLoc.lng, endLoc.lng) - 0.001,
+          ),
+          northeast: LatLng(
+            max(startLoc.lat, endLoc.lat) + 0.001,
+            max(startLoc.lng, endLoc.lng) + 0.001,
+          ),
+        );
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            bounds,
+            left: 50,
+            top: 150,
+            right: 50,
+            bottom: 50,
+          ),
+        );
+      } else {
+        // For show_location or show_multiple_locations, just fly to first location
+        final first = locations.first;
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(first.lat, first.lng), 19),
+        );
+      }
+    });
   }
 
   /// Check if a location is within campus bounds

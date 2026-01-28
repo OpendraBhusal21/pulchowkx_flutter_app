@@ -198,7 +198,7 @@ class _BrandLogo extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               LogoCard(width: 40, height: 40),
-              SizedBox(width: 8),
+              SizedBox(width: 4),
               Text(
                 'PulchowkX',
                 style: AppTextStyles.h4.copyWith(

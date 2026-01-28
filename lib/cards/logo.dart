@@ -12,19 +12,16 @@ class LogoCard extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.colored(AppColors.primary),
+        boxShadow: AppShadows.sm,
       ),
       child: Center(
-        child: Text(
-          'P',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: width * 0.55,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
+        child: Image.asset(
+          'assets/icons/foreground.png',
+          width: width,
+          height: height,
+          fit: BoxFit.contain,
         ),
       ),
     );
