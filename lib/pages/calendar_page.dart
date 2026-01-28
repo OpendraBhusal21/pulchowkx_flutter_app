@@ -68,7 +68,11 @@ class _CalendarPageState extends State<CalendarPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Event Calendar'), centerTitle: true),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: Column(
           children: [
             if (_isLoading)
@@ -100,6 +104,12 @@ class _CalendarPageState extends State<CalendarPage> {
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
+                  defaultTextStyle: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                  weekendTextStyle: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 headerStyle: HeaderStyle(
                   formatButtonVisible: true,
@@ -112,7 +122,17 @@ class _CalendarPageState extends State<CalendarPage> {
                   formatButtonTextStyle: AppTextStyles.labelSmall.copyWith(
                     color: AppColors.primary,
                   ),
-                  titleTextStyle: AppTextStyles.h4,
+                  titleTextStyle: AppTextStyles.h4.copyWith(
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                  leftChevronIcon: Icon(
+                    Icons.chevron_left,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
+                  rightChevronIcon: Icon(
+                    Icons.chevron_right,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
                 ),
                 onDaySelected: (selectedDay, focusedDay) {
                   if (!isSameDay(_selectedDay, selectedDay)) {

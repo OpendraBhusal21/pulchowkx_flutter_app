@@ -52,15 +52,17 @@ class _EventCardState extends State<EventCard> {
           borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(AppRadius.xl),
               border: Border.all(
                 color: isOngoing
                     ? AppColors.success.withValues(alpha: 0.5)
-                    : AppColors.border,
+                    : Theme.of(context).dividerTheme.color ?? AppColors.border,
                 width: isOngoing ? 2 : 1,
               ),
-              boxShadow: AppShadows.sm,
+              boxShadow: Theme.of(context).brightness == Brightness.light
+                  ? AppShadows.sm
+                  : null, // Deeper look in dark mode without shadows
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,9 +118,13 @@ class _EventCardState extends State<EventCard> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(AppRadius.md),
-                              boxShadow: AppShadows.sm,
+                              boxShadow:
+                                  Theme.of(context).brightness ==
+                                      Brightness.light
+                                  ? AppShadows.sm
+                                  : null,
                             ),
                             child: Column(
                               children: [
@@ -133,10 +139,10 @@ class _EventCardState extends State<EventCard> {
                                 ),
                                 Text(
                                   widget.event.eventStartTime.day.toString(),
-                                  style: AppTextStyles.h4.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 18,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(fontSize: 18),
                                 ),
                               ],
                             ),
@@ -199,10 +205,8 @@ class _EventCardState extends State<EventCard> {
                       children: [
                         Text(
                           widget.event.title,
-                          style: AppTextStyles.labelLarge.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -218,9 +222,7 @@ class _EventCardState extends State<EventCard> {
                             const SizedBox(width: 4),
                             Text(
                               timeFormat.format(widget.event.eventStartTime),
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
                         ),

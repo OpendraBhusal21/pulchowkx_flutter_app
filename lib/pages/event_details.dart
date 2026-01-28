@@ -372,7 +372,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         ),
         title: const Text('Cancel Registration'),
         titleTextStyle: AppTextStyles.h4,
-        content: const Text(
+        content: Text(
           'Are you sure you want to cancel your registration for this event?',
           style: AppTextStyles.bodyMedium,
         ),
@@ -441,7 +441,11 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     return Scaffold(
       appBar: const CustomAppBar(),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: _buildContent(),
       ),
     );
@@ -706,7 +710,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                               Text(
                                 '${dateFormat.format(event.registrationDeadline!)} at ${timeFormat.format(event.registrationDeadline!)}',
                                 style: AppTextStyles.labelMedium.copyWith(
-                                  color: AppColors.textPrimary,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -724,16 +730,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   Text(
                     'About This Event',
                     style: AppTextStyles.h4.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).textTheme.titleLarge?.color,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(
+                        color:
+                            Theme.of(context).dividerTheme.color ??
+                            AppColors.border,
+                      ),
                     ),
                     child: Text(
                       _extraDetails?['fullDescription']?.isNotEmpty == true
@@ -841,9 +851,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: Theme.of(context).cardTheme.color,
                         borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(
+                          color:
+                              Theme.of(context).dividerTheme.color ??
+                              AppColors.border,
+                        ),
                       ),
                       child: Center(
                         child: Column(
@@ -867,16 +881,22 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   else
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: Theme.of(context).cardTheme.color,
                         borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(
+                          color:
+                              Theme.of(context).dividerTheme.color ??
+                              AppColors.border,
+                        ),
                       ),
                       child: ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _registeredStudents.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1, color: AppColors.border),
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: Theme.of(context).dividerTheme.color,
+                        ),
                         itemBuilder: (context, index) {
                           final student = _registeredStudents[index];
                           final user = student['student'] ?? student;
@@ -975,9 +995,11 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+            ),
           ),
           child: Text(
             content,
@@ -1172,9 +1194,11 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1195,7 +1219,7 @@ class _InfoCard extends StatelessWidget {
           Text(
             value,
             style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontWeight: FontWeight.w600,
             ),
             maxLines: 2,

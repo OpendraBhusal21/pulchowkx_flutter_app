@@ -17,7 +17,11 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: const CustomAppBar(isHomePage: true, currentPage: AppPage.home),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(

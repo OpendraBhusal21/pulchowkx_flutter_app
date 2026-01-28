@@ -14,12 +14,16 @@ class StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.black.withValues(alpha: 0.03)
+                : Colors.transparent,
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -241,9 +245,11 @@ class SetupForm extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(
+                color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+              ),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<Faculty>(
@@ -277,7 +283,7 @@ class SetupForm extends StatelessWidget {
                   labelStyle: TextStyle(
                     color: isSelected
                         ? AppColors.primary
-                        : AppColors.textSecondary,
+                        : Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 );
               }),
@@ -303,9 +309,13 @@ class SetupForm extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(
+                    color:
+                        Theme.of(context).dividerTheme.color ??
+                        AppColors.border,
+                  ),
                 ),
                 child: Row(
                   children: [

@@ -30,8 +30,10 @@ class AppColors {
 
   // Text colors (Dark)
   static const Color textPrimaryDark = Color(0xFFF9FAFB);
-  static const Color textSecondaryDark = Color(0xFF9CA3AF);
-  static const Color textMutedDark = Color(0xFF6B7280);
+  static const Color textSecondaryDark = Color(
+    0xFFE2E8F0,
+  ); // Lighter for better contrast
+  static const Color textMutedDark = Color(0xFF94A3B8);
 
   // Status colors
   static const Color success = Color(0xFF10B981);
@@ -72,89 +74,78 @@ class AppColors {
 class AppTextStyles {
   static const String fontFamily = 'Inter';
 
-  // Headings
-  static const TextStyle h1 = TextStyle(
+  // Master Text styles without hardcoded colors
+  static const TextStyle _base = TextStyle(fontFamily: fontFamily, height: 1.5);
+
+  static final TextStyle h1 = _base.copyWith(
     fontSize: 36,
     fontWeight: FontWeight.w800,
-    color: AppColors.textPrimary,
     height: 1.2,
     letterSpacing: -0.5,
   );
 
-  static const TextStyle h2 = TextStyle(
+  static final TextStyle h2 = _base.copyWith(
     fontSize: 28,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
     height: 1.3,
     letterSpacing: -0.3,
   );
 
-  static const TextStyle h3 = TextStyle(
+  static final TextStyle h3 = _base.copyWith(
     fontSize: 22,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.3,
   );
 
-  static const TextStyle h4 = TextStyle(
+  static final TextStyle h4 = _base.copyWith(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.4,
   );
 
-  // Body text
-  static const TextStyle bodyLarge = TextStyle(
+  static final TextStyle bodyLarge = _base.copyWith(
     fontSize: 16,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
     height: 1.6,
   );
 
-  static const TextStyle bodyMedium = TextStyle(
+  static final TextStyle bodyMedium = _base.copyWith(
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
     height: 1.5,
   );
 
-  static const TextStyle bodySmall = TextStyle(
+  static final TextStyle bodySmall = _base.copyWith(
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    color: AppColors.textMuted,
     height: 1.5,
   );
 
-  // Labels
-  static const TextStyle labelLarge = TextStyle(
+  static final TextStyle labelLarge = _base.copyWith(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     letterSpacing: 0.1,
   );
 
-  static const TextStyle labelMedium = TextStyle(
+  static final TextStyle labelMedium = _base.copyWith(
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
     letterSpacing: 0.1,
   );
 
-  static const TextStyle labelSmall = TextStyle(
+  static final TextStyle labelSmall = _base.copyWith(
     fontSize: 10,
     fontWeight: FontWeight.w500,
-    color: AppColors.textMuted,
     letterSpacing: 0.2,
   );
 
-  // Button text
-  static const TextStyle button = TextStyle(
+  static final TextStyle button = _base.copyWith(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.3,
   );
 
-  static const TextStyle buttonSmall = TextStyle(
+  static final TextStyle buttonSmall = _base.copyWith(
     fontSize: 13,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.2,
@@ -218,17 +209,48 @@ class AppShadows {
 
 /// App theme data
 class AppTheme {
+  static TextTheme _buildTextTheme(Brightness brightness) {
+    final color = brightness == Brightness.light
+        ? AppColors.textPrimary
+        : AppColors.textPrimaryDark;
+    final secondaryColor = brightness == Brightness.light
+        ? AppColors.textSecondary
+        : AppColors.textSecondaryDark;
+    final mutedColor = brightness == Brightness.light
+        ? AppColors.textMuted
+        : AppColors.textMutedDark;
+
+    return TextTheme(
+      displayLarge: AppTextStyles.h1.copyWith(color: color),
+      displayMedium: AppTextStyles.h2.copyWith(color: color),
+      displaySmall: AppTextStyles.h3.copyWith(color: color),
+      headlineMedium: AppTextStyles.h4.copyWith(color: color),
+      bodyLarge: AppTextStyles.bodyLarge.copyWith(color: secondaryColor),
+      bodyMedium: AppTextStyles.bodyMedium.copyWith(color: secondaryColor),
+      bodySmall: AppTextStyles.bodySmall.copyWith(color: mutedColor),
+      labelLarge: AppTextStyles.labelLarge.copyWith(color: color),
+      labelMedium: AppTextStyles.labelMedium.copyWith(color: secondaryColor),
+      labelSmall: AppTextStyles.labelSmall.copyWith(color: mutedColor),
+    );
+  }
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       fontFamily: AppTextStyles.fontFamily,
+      textTheme: _buildTextTheme(Brightness.light),
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.light,
         primary: AppColors.primary,
+        onPrimary: Colors.white,
         secondary: AppColors.accent,
+        onSecondary: Colors.white,
         surface: AppColors.surface,
+        onSurface: AppColors.textPrimary,
         error: AppColors.error,
+        onSurfaceVariant: AppColors.textSecondary,
+        outline: AppColors.border,
       ),
       scaffoldBackgroundColor: AppColors.background,
       appBarTheme: const AppBarTheme(
@@ -332,13 +354,19 @@ class AppTheme {
       useMaterial3: true,
       fontFamily: AppTextStyles.fontFamily,
       brightness: Brightness.dark,
+      textTheme: _buildTextTheme(Brightness.dark),
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.dark,
         primary: AppColors.primaryLight,
+        onPrimary: AppColors.backgroundDark,
         secondary: AppColors.accent,
+        onSecondary: Colors.white,
         surface: AppColors.surfaceDark,
+        onSurface: AppColors.textPrimaryDark,
         error: AppColors.error,
+        onSurfaceVariant: AppColors.textSecondaryDark,
+        outline: AppColors.borderDark,
       ),
       scaffoldBackgroundColor: AppColors.backgroundDark,
       appBarTheme: const AppBarTheme(
@@ -395,7 +423,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.backgroundSecondaryDark,
+        fillColor: const Color(0xFF374151), // Grey fill instead of blue-dark
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: const BorderSide(color: AppColors.borderDark),

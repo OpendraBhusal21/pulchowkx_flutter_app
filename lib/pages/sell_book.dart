@@ -208,10 +208,10 @@ class _SellBookPageState extends State<SellBookPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.textPrimary),
+          icon: Icon(Icons.close, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -354,9 +354,13 @@ class _SellBookPageState extends State<SellBookPage> {
                           horizontal: AppSpacing.md,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(AppRadius.sm),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(
+                            color:
+                                Theme.of(context).dividerTheme.color ??
+                                AppColors.border,
+                          ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<BookCategory?>(
@@ -409,10 +413,11 @@ class _SellBookPageState extends State<SellBookPage> {
             child: Container(
               width: 100,
               decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 border: Border.all(
-                  color: AppColors.border,
+                  color:
+                      Theme.of(context).dividerTheme.color ?? AppColors.border,
                   style: BorderStyle.solid,
                 ),
               ),
@@ -499,7 +504,7 @@ class _SellBookPageState extends State<SellBookPage> {
                 color: AppColors.textMuted,
               ),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: Theme.of(context).inputDecorationTheme.fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
                 borderSide: BorderSide(color: AppColors.border),

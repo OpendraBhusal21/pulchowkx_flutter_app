@@ -119,14 +119,16 @@ class _FavoritesPageState extends State<FavoritesPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('My Favorites'),
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: AppTextStyles.h4.copyWith(color: AppColors.textPrimary),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        titleTextStyle: AppTextStyles.h4.copyWith(
+          color: Theme.of(context).textTheme.titleLarge?.color,
+        ),
+        iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary,

@@ -136,7 +136,11 @@ class _ClubDetailsPageState extends State<ClubDetailsPage>
           }
 
           return Container(
-            decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+            decoration: BoxDecoration(
+              gradient: Theme.of(context).brightness == Brightness.light
+                  ? AppColors.heroGradient
+                  : AppColors.heroGradientDark,
+            ),
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
                 // Club Header
@@ -349,9 +353,12 @@ class _ClubHeader extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isFavorite
                               ? AppColors.error
-                              : AppColors.surface,
+                              : Theme.of(context).cardTheme.color,
                           shape: BoxShape.circle,
-                          boxShadow: AppShadows.md,
+                          boxShadow:
+                              Theme.of(context).brightness == Brightness.light
+                              ? AppShadows.md
+                              : null,
                         ),
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 200),
@@ -377,16 +384,16 @@ class _ClubHeader extends StatelessWidget {
           // Club Name
           Text(
             club.name,
-            style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontSize: 28),
             textAlign: TextAlign.center,
           ),
           if (club.description != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
               club.description!,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -513,7 +520,10 @@ class _ClubTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(context, shrinkOffset, overlapsContent) {
-    return Container(color: AppColors.surface, child: tabBar);
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: tabBar,
+    );
   }
 
   @override
@@ -587,7 +597,7 @@ class _AboutTabState extends State<_AboutTab> {
           const SizedBox(height: AppSpacing.xs),
           Text(
             'About ${widget.club.name}',
-            style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: AppSpacing.md),
 
@@ -697,10 +707,9 @@ class _AboutTabState extends State<_AboutTab> {
           const SizedBox(height: AppSpacing.sm),
           Text(
             content,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
-              height: 1.5,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
         ],
       ),
@@ -711,9 +720,11 @@ class _AboutTabState extends State<_AboutTab> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -726,7 +737,12 @@ class _AboutTabState extends State<_AboutTab> {
                 color: AppColors.primary,
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text('Club Administrators', style: AppTextStyles.h3),
+              Text(
+                'Club Administrators',
+                style: Theme.of(
+                  context,
+                ).textTheme.displaySmall?.copyWith(fontSize: 20),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -794,12 +810,12 @@ class _AboutTabState extends State<_AboutTab> {
       decoration: BoxDecoration(
         color: isOwner
             ? AppColors.primary.withValues(alpha: 0.05)
-            : AppColors.background,
+            : Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
           color: isOwner
               ? AppColors.primary.withValues(alpha: 0.2)
-              : AppColors.border,
+              : Theme.of(context).dividerTheme.color ?? AppColors.border,
         ),
       ),
       child: Row(
@@ -919,14 +935,21 @@ class _ContactCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Contact Info', style: AppTextStyles.h3),
+          Text(
+            'Contact Info',
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontSize: 20),
+          ),
           const SizedBox(height: AppSpacing.lg),
           if (club.email != null)
             _ContactItem(
@@ -1010,7 +1033,7 @@ class _ContactItem extends StatelessWidget {
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: onTap != null
                       ? AppColors.primary
-                      : AppColors.textPrimary,
+                      : Theme.of(context).textTheme.bodyMedium?.color,
                   decoration: onTap != null ? TextDecoration.underline : null,
                 ),
               ),
@@ -1186,9 +1209,11 @@ class _EventCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(
+                color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+              ),
             ),
             child: Row(
               children: [
@@ -1234,7 +1259,6 @@ class _EventCard extends StatelessWidget {
                           event.title,
                           style: AppTextStyles.labelLarge.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

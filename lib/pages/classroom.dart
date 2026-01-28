@@ -114,7 +114,11 @@ class _ClassroomPageState extends State<ClassroomPage> {
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.classroom),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: _isLoading
             ? const Padding(
                 padding: EdgeInsets.all(AppSpacing.lg),

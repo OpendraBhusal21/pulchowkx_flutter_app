@@ -133,10 +133,13 @@ class _MyBooksPageState extends State<MyBooksPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        // backgroundColor handled by theme
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).iconTheme.color,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('My Books', style: AppTextStyles.h4),

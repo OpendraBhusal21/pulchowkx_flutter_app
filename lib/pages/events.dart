@@ -40,7 +40,11 @@ class _EventsPageState extends State<EventsPage> {
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.events),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: RefreshIndicator(
           onRefresh: () async {
             HapticFeedback.mediumImpact();
@@ -124,16 +128,17 @@ class _EventsPageState extends State<EventsPage> {
                           const SizedBox(height: AppSpacing.md),
                           Text(
                             'Campus Events',
-                            style: AppTextStyles.h2.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
+                            style: Theme.of(context).textTheme.headlineMedium,
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
                             'Discover workshops, seminars, and gatherings',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: AppSpacing.md),
@@ -290,10 +295,9 @@ class _EventsPageState extends State<EventsPage> {
           children: [
             Text(
               title,
-              style: AppTextStyles.h3.copyWith(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: AppSpacing.sm),
             Container(
@@ -392,7 +396,7 @@ class _EventsPageState extends State<EventsPage> {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
           ),
@@ -407,13 +411,13 @@ class _EventsPageState extends State<EventsPage> {
               const SizedBox(height: AppSpacing.md),
               Text(
                 'Failed to load events',
-                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimary),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Please check your connection and try again.',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),

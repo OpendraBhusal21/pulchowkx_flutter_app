@@ -47,9 +47,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: const Border(
-              bottom: BorderSide(color: AppColors.border, width: 1),
+            color: Theme.of(context).appBarTheme.backgroundColor,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+                width: 1,
+              ),
             ),
           ),
           child: SafeArea(
@@ -262,7 +265,7 @@ class _BrandLogo extends StatelessWidget {
               SizedBox(width: 4),
               Text(
                 'PulchowkX',
-                style: AppTextStyles.h4.copyWith(
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0,
@@ -506,7 +509,9 @@ class _MobileMoreMenu extends StatelessWidget {
         children: [
           Icon(
             Icons.more_vert_rounded,
-            color: isActive ? AppColors.primary : AppColors.textPrimary,
+            color: isActive
+                ? AppColors.primary
+                : Theme.of(context).colorScheme.onSurface,
           ),
           if (isActive)
             Positioned(

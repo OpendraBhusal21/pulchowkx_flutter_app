@@ -15,10 +15,14 @@ class ClubCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppShadows.sm,
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
+        boxShadow: Theme.of(context).brightness == Brightness.light
+            ? AppShadows.sm
+            : null,
       ),
       child: InkWell(
         onTap:
@@ -113,10 +117,9 @@ class ClubCard extends StatelessWidget {
                   children: [
                     Text(
                       club.name,
-                      style: AppTextStyles.h4.copyWith(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 16),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -124,10 +127,9 @@ class ClubCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         club.description ?? 'No description available',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(height: 1.4),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -137,12 +139,14 @@ class ClubCard extends StatelessWidget {
                     Row(
                       children: [
                         _buildStat(
+                          context,
                           Icons.event_rounded,
                           '${club.upcomingEvents ?? 0}',
                           'Events',
                         ),
                         const SizedBox(width: AppSpacing.md),
                         _buildStat(
+                          context,
                           Icons.people_rounded,
                           '${club.totalParticipants ?? 0}',
                           'Members',
@@ -163,7 +167,12 @@ class ClubCard extends StatelessWidget {
     return const BoxShimmer(height: double.infinity, borderRadius: 0);
   }
 
-  Widget _buildStat(IconData icon, String value, String label) {
+  Widget _buildStat(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -171,17 +180,14 @@ class ClubCard extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           value,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 2),
         Text(
           label,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
         ),
       ],
     );

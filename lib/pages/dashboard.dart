@@ -74,7 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         titleTextStyle: AppTextStyles.h4,
-        content: const Text(
+        content: Text(
           'Are you sure you want to sign out?',
           style: AppTextStyles.bodyMedium,
         ),
@@ -236,7 +236,11 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.dashboard),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
@@ -268,7 +272,10 @@ class _DashboardPageState extends State<DashboardPage> {
                               ),
                             ),
                             const SizedBox(width: AppSpacing.sm),
-                            Text('Dashboard', style: AppTextStyles.h3),
+                            Text(
+                              'Dashboard',
+                              style: Theme.of(context).textTheme.displaySmall,
+                            ),
                           ],
                         ),
                         const SizedBox(height: AppSpacing.xs),
@@ -289,10 +296,17 @@ class _DashboardPageState extends State<DashboardPage> {
                   ? const DashboardHeaderShimmer()
                   : Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: Theme.of(context).cardTheme.color,
                         borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(color: AppColors.border),
-                        boxShadow: AppShadows.sm,
+                        border: Border.all(
+                          color:
+                              Theme.of(context).dividerTheme.color ??
+                              AppColors.border,
+                        ),
+                        boxShadow:
+                            Theme.of(context).brightness == Brightness.light
+                            ? AppShadows.sm
+                            : null,
                       ),
                       child: Column(
                         children: [
@@ -309,7 +323,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   ),
                                   child: CircleAvatar(
                                     radius: 36,
-                                    backgroundColor: AppColors.surface,
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).cardTheme.color,
                                     backgroundImage: photoUrl != null
                                         ? CachedNetworkImageProvider(photoUrl)
                                         : null,
@@ -330,7 +346,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     children: [
                                       Text(
                                         displayName,
-                                        style: AppTextStyles.h4,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.headlineMedium,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -385,7 +403,10 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                           ),
-                          Container(height: 1, color: AppColors.border),
+                          Container(
+                            height: 1,
+                            color: Theme.of(context).dividerTheme.color,
+                          ),
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.lg,
@@ -615,14 +636,18 @@ class _QuickActionCardState extends State<_QuickActionCard> {
         duration: const Duration(milliseconds: 200),
         height: 150,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(
             color: _isHovered
                 ? widget.color.withValues(alpha: 0.5)
-                : AppColors.border,
+                : Theme.of(context).dividerTheme.color ?? AppColors.border,
           ),
-          boxShadow: _isHovered ? AppShadows.md : AppShadows.sm,
+          boxShadow: _isHovered
+              ? AppShadows.md
+              : (Theme.of(context).brightness == Brightness.light
+                    ? AppShadows.sm
+                    : null),
         ),
         child: Material(
           color: Colors.transparent,

@@ -42,10 +42,14 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: Theme.of(context).cardTheme.color,
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
+        boxShadow: Theme.of(context).brightness == Brightness.light
+            ? AppShadows.sm
+            : null,
       ),
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(

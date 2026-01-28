@@ -180,9 +180,11 @@ class _SubjectCardState extends State<SubjectCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
       ),
       child: Column(
         children: [
@@ -266,7 +268,9 @@ class _SubjectCardState extends State<SubjectCard> {
           if (_isExpanded && hasAssignments)
             Container(
               decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
+                color: Theme.of(
+                  context,
+                ).scaffoldBackgroundColor.withValues(alpha: 0.5),
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(AppRadius.lg),
                 ),

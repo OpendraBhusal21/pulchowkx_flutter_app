@@ -163,7 +163,11 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
         foregroundColor: Colors.white,
       ),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: Column(
           children: [
             _buildHeader(),
@@ -237,9 +241,15 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: Theme.of(context).inputDecorationTheme.fillColor,
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(
+                      color:
+                          Theme.of(
+                            context,
+                          ).inputDecorationTheme.border?.borderSide.color ??
+                          AppColors.border,
+                    ),
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -354,9 +364,11 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
       margin: const EdgeInsets.all(AppSpacing.lg),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,9 +391,12 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(
+                  color:
+                      Theme.of(context).dividerTheme.color ?? AppColors.border,
+                ),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<BookCategory?>(

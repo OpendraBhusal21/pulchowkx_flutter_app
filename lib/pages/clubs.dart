@@ -33,7 +33,11 @@ class _ClubsPageState extends State<ClubsPage> {
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.clubs),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.light
+              ? AppColors.heroGradient
+              : AppColors.heroGradientDark,
+        ),
         child: RefreshIndicator(
           onRefresh: () async {
             HapticFeedback.mediumImpact();
@@ -79,16 +83,14 @@ class _ClubsPageState extends State<ClubsPage> {
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         'Campus Clubs',
-                        style: AppTextStyles.h2.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         'Explore the vibrant clubs at Pulchowk Campus',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -230,10 +232,12 @@ class _ClubsPageState extends State<ClubsPage> {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-            boxShadow: AppShadows.md,
+            boxShadow: Theme.of(context).brightness == Brightness.light
+                ? AppShadows.md
+                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -253,13 +257,13 @@ class _ClubsPageState extends State<ClubsPage> {
               const SizedBox(height: AppSpacing.md),
               Text(
                 'Something went wrong',
-                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimary),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Failed to load clubs. Please check your connection.',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
