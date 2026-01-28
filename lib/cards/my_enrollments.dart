@@ -6,6 +6,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/event_card.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
+import 'package:pulchowkx_app/widgets/empty_states.dart';
 
 class MyEnrollments extends StatefulWidget {
   const MyEnrollments({super.key});
@@ -92,11 +93,10 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
               }
 
               if (snapshot.hasError) {
-                return _buildEmptyState(
-                  icon: Icons.error_outline_rounded,
+                return const EmptyStateWidget(
+                  type: EmptyStateType.generic,
                   title: 'Failed to load enrollments',
-                  subtitle: 'Please try again later',
-                  color: AppColors.error,
+                  message: 'Please try again later',
                 );
               }
 
@@ -106,11 +106,10 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
                   .toList();
 
               if (activeEnrollments.isEmpty) {
-                return _buildEmptyState(
-                  icon: Icons.event_busy_rounded,
+                return const EmptyStateWidget(
+                  type: EmptyStateType.events,
                   title: 'No enrollments yet',
-                  subtitle: 'Browse events and register to see them here',
-                  color: AppColors.textMuted,
+                  message: 'Browse events and register to see them here',
                 );
               }
 
@@ -143,38 +142,6 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(icon, size: 40, color: color.withValues(alpha: 0.5)),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textMuted,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 
-enum EmptyStateType { books, clubs, events, submissions, assignments, generic }
+enum EmptyStateType {
+  books,
+  clubs,
+  events,
+  submissions,
+  assignments,
+  search,
+  generic,
+}
 
 class EmptyStateWidget extends StatelessWidget {
   final EmptyStateType type;
@@ -22,52 +30,73 @@ class EmptyStateWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildIllustration(),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              title ?? _getDefaultTitle(),
-              style: AppTextStyles.h4,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              message ?? _getDefaultMessage(),
-              style: AppTextStyles.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            if (onAction != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-              ElevatedButton(
-                onPressed: onAction,
-                child: Text(actionLabel ?? 'Get Started'),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildIllustration(),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                title ?? _getDefaultTitle(),
+                style: AppTextStyles.h4,
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                message ?? _getDefaultMessage(),
+                style: AppTextStyles.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              if (onAction != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                ElevatedButton(
+                  onPressed: onAction,
+                  child: Text(actionLabel ?? 'Get Started'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildIllustration() {
-    if (type == EmptyStateType.books) {
-      return Image.asset(
-        'assets/images/sleeping_book.png',
-        height: 180,
-        fit: BoxFit.contain,
-      );
+    String? assetPath;
+    switch (type) {
+      case EmptyStateType.books:
+        assetPath = 'assets/images/sleeping_book.png';
+        break;
+      case EmptyStateType.events:
+        assetPath = 'assets/images/empty_events.png';
+        break;
+      case EmptyStateType.clubs:
+        assetPath = 'assets/images/empty_clubs.png';
+        break;
+      case EmptyStateType.search:
+        assetPath = 'assets/images/empty_search.png';
+        break;
+      case EmptyStateType.assignments:
+      case EmptyStateType.submissions:
+        assetPath = 'assets/images/empty_assignments.png';
+        break;
+      case EmptyStateType.generic:
+        break;
+    }
+
+    if (assetPath != null) {
+      return Image.asset(assetPath, height: 180, fit: BoxFit.contain);
     }
 
     IconData icon;
     Color color;
 
     switch (type) {
-      case EmptyStateType
-          .books: // Fallback if image fails or for consistency in logic
+      case EmptyStateType.books:
         icon = Icons.menu_book_rounded;
         color = Colors.teal;
         break;
@@ -86,6 +115,10 @@ class EmptyStateWidget extends StatelessWidget {
       case EmptyStateType.assignments:
         icon = Icons.assignment_rounded;
         color = Colors.orange;
+        break;
+      case EmptyStateType.search:
+        icon = Icons.search_off_rounded;
+        color = AppColors.textMuted;
         break;
       case EmptyStateType.generic:
         icon = Icons.inbox_rounded;
@@ -114,6 +147,8 @@ class EmptyStateWidget extends StatelessWidget {
         return 'No submissions yet';
       case EmptyStateType.assignments:
         return 'All caught up!';
+      case EmptyStateType.search:
+        return 'No results found';
       default:
         return 'Nothing here';
     }
@@ -131,6 +166,8 @@ class EmptyStateWidget extends StatelessWidget {
         return 'Waiting for students to submit their brilliance.';
       case EmptyStateType.assignments:
         return 'You have no pending assignments. Time to relax or explore!';
+      case EmptyStateType.search:
+        return 'We looked everywhere but couldn\'t find what you\'re looking for.';
       default:
         return 'This section seems empty for now.';
     }

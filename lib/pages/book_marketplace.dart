@@ -472,16 +472,19 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
     }
 
     if (_listings.isEmpty) {
+      final isSearching =
+          _searchController.text.isNotEmpty ||
+          _selectedCategory != null ||
+          _selectedCondition != null;
+
       return EmptyStateWidget(
-        type: EmptyStateType.books,
-        onAction: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SellBookPage()),
-          ).then((_) => _loadListings());
-        },
-        actionLabel: 'Sell a Book',
+        type: isSearching ? EmptyStateType.search : EmptyStateType.books,
+        onAction: isSearching ? _resetFilters : null,
+        actionLabel: isSearching ? 'Clear Filters' : 'Sell a Book',
+        title: isSearching ? 'No match found' : null,
+        message: isSearching
+            ? 'We couldn\'t find any books matching your current filters.'
+            : null,
       );
     }
 
