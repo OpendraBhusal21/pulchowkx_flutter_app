@@ -5,6 +5,7 @@ import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/pages/sell_book.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/pages/marketplace/book_requests_page.dart';
 
 class MyBooksPage extends StatefulWidget {
   const MyBooksPage({super.key});
@@ -25,7 +26,7 @@ class _MyBooksPageState extends State<MyBooksPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
@@ -150,6 +151,7 @@ class _MyBooksPageState extends State<MyBooksPage>
           indicatorColor: AppColors.primary,
           tabs: [
             Tab(text: 'My Listings (${_myListings.length})'),
+            Tab(text: 'Requests'),
             Tab(text: 'Saved (${_savedBooks.length})'),
           ],
         ),
@@ -160,7 +162,11 @@ class _MyBooksPageState extends State<MyBooksPage>
             )
           : TabBarView(
               controller: _tabController,
-              children: [_buildMyListings(), _buildSavedBooks()],
+              children: [
+                _buildMyListings(),
+                const BookRequestsPage(),
+                _buildSavedBooks(),
+              ],
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

@@ -2,6 +2,7 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/foundation.dart";
 import "package:google_sign_in/google_sign_in.dart";
 import "package:pulchowkx_app/services/api_service.dart";
+import "package:pulchowkx_app/services/notification_service.dart";
 
 class FirebaseServices {
   final FirebaseAuth auth = FirebaseAuth.instance;
@@ -41,11 +42,13 @@ class FirebaseServices {
         debugPrint("=======================================");
 
         // Sync user to Postgres database
+        final fcmToken = await NotificationService.getToken();
         final dbUserId = await _apiService.syncUser(
           authStudentId: user.uid,
           email: user.email ?? '',
           name: user.displayName ?? 'Unknown User',
           image: user.photoURL,
+          fcmToken: fcmToken,
         );
         debugPrint("User synced to database. DB ID: $dbUserId");
       }

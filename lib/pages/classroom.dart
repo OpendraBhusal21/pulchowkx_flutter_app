@@ -7,6 +7,7 @@ import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'classroom/shared_widgets.dart';
 import 'classroom/student_view.dart';
 import 'classroom/teacher_view.dart';
+import 'package:pulchowkx_app/services/notification_service.dart';
 
 class ClassroomPage extends StatefulWidget {
   const ClassroomPage({super.key});
@@ -64,6 +65,9 @@ class _ClassroomPageState extends State<ClassroomPage> {
             _selectedSemester = _profile!.currentSemester;
             _semesterStartDate = _profile!.semesterStartDate;
           }
+
+          // Subscribe to faculty notifications
+          NotificationService.subscribeToFaculty(_profile!.facultyId);
         }
       }
 

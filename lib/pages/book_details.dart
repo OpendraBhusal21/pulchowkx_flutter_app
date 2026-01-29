@@ -18,9 +18,12 @@ class BookDetailsPage extends StatefulWidget {
 class _BookDetailsPageState extends State<BookDetailsPage> {
   final ApiService _apiService = ApiService();
   BookListing? _book;
+  BookPurchaseRequest? _myRequest;
   bool _isLoading = true;
+  bool _isRequesting = false;
   String? _errorMessage;
   int _currentImageIndex = 0;
+  final TextEditingController _messageController = TextEditingController();
 
   @override
   void initState() {
@@ -36,9 +39,16 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
     try {
       final book = await _apiService.getBookListingById(widget.bookId);
+      BookPurchaseRequest? myRequest;
+
+      if (book != null && !book.isOwner) {
+        myRequest = await _apiService.getPurchaseRequestStatus(widget.bookId);
+      }
+
       if (mounted) {
         setState(() {
           _book = book;
+          _myRequest = myRequest;
           _isLoading = false;
           if (book == null) _errorMessage = 'Book not found';
         });
@@ -77,19 +87,93 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Future<void> _contactSeller() async {
-    if (_book?.seller?.email == null) return;
+    if (_book == null) return;
 
-    final subject = Uri.encodeComponent('Interested in: ${_book!.title}');
-    final body = Uri.encodeComponent(
-      'Hi, I am interested in buying "${_book!.title}" listed on Pulchowk-X.',
+    if (_myRequest != null) {
+      if (_myRequest!.status == RequestStatus.accepted) {
+        // Already accepted, show seller info or launch email
+        final email = _book!.seller?.email;
+        if (email != null) {
+          final emailUri = Uri.parse(
+            'mailto:$email?subject=Interested in: ${_book!.title}',
+          );
+          if (await canLaunchUrl(emailUri)) {
+            await launchUrl(emailUri);
+          }
+        }
+      } else {
+        // Pending or Rejected, maybe show status
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Request is ${_myRequest!.status.label}'),
+            backgroundColor: _myRequest!.status == RequestStatus.rejected
+                ? AppColors.error
+                : AppColors.primary,
+          ),
+        );
+      }
+      return;
+    }
+
+    final message = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request to Buy'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Send a message to the seller:'),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _messageController,
+              decoration: const InputDecoration(
+                hintText:
+                    'e.g., I am interested in this book, when can we meet?',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, _messageController.text),
+            child: const Text('Send Request'),
+          ),
+        ],
+      ),
     );
 
-    final emailUri = Uri.parse(
-      'mailto:${_book!.seller!.email}?subject=$subject&body=$body',
-    );
-
-    if (await canLaunchUrl(emailUri)) {
-      await launchUrl(emailUri);
+    if (message != null) {
+      setState(() => _isRequesting = true);
+      final result = await _apiService.createPurchaseRequest(
+        _book!.id,
+        message,
+      );
+      if (mounted) {
+        setState(() => _isRequesting = false);
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Request sent successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          _loadBook(); // Reload to get request status
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to send request'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -446,6 +530,26 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Widget _buildContactBar() {
+    String buttonText = 'Request to Buy';
+    IconData icon = Icons.shopping_cart_outlined;
+    Color buttonColor = AppColors.primary;
+
+    if (_myRequest != null) {
+      if (_myRequest!.status == RequestStatus.pending) {
+        buttonText = 'Request Pending';
+        icon = Icons.hourglass_empty;
+        buttonColor = Colors.orange;
+      } else if (_myRequest!.status == RequestStatus.accepted) {
+        buttonText = 'Contact Seller';
+        icon = Icons.mail_outline;
+        buttonColor = AppColors.success;
+      } else if (_myRequest!.status == RequestStatus.rejected) {
+        buttonText = 'Request Rejected';
+        icon = Icons.cancel_outlined;
+        buttonColor = AppColors.error;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -454,21 +558,32 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: _contactSeller,
+          onPressed: _isRequesting ? null : _contactSeller,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: buttonColor,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.mail_outline),
-              SizedBox(width: AppSpacing.sm),
-              Text('Contact Seller'),
+              if (_isRequesting)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              else ...[
+                Icon(icon),
+                const SizedBox(width: AppSpacing.sm),
+                Text(buttonText),
+              ],
             ],
           ),
         ),

@@ -913,9 +913,9 @@ class _MapPageState extends State<MapPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -941,7 +941,10 @@ class _MapPageState extends State<MapPage> {
             const SizedBox(height: 8),
             Text(
               'Navigate to: ${destination['title']}',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 20),
             // Use Current Location option
@@ -1085,9 +1088,11 @@ class _MapPageState extends State<MapPage> {
             minChildSize: 0.5,
             maxChildSize: 0.95,
             builder: (context, scrollController) => Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               child: Column(
                 children: [
@@ -1120,7 +1125,10 @@ class _MapPageState extends State<MapPage> {
                           color: Colors.grey,
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -1152,7 +1160,11 @@ class _MapPageState extends State<MapPage> {
                         ? Center(
                             child: Text(
                               'No locations found',
-                              style: TextStyle(color: Colors.grey[600]),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           )
                         : ListView.builder(
@@ -1526,8 +1538,10 @@ class _MapPageState extends State<MapPage> {
                             color:
                                 Theme.of(
                                   context,
-                                ).cardTheme.color?.withValues(alpha: 0.5) ??
-                                Colors.white.withValues(alpha: 0.5),
+                                ).cardTheme.color?.withValues(alpha: 0.7) ??
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surface.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: Theme.of(

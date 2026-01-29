@@ -169,6 +169,8 @@ class BookListing {
   final BookCategory? category;
   final bool isSaved;
   final bool isOwner;
+  final String? buyerContactInfo;
+  final int requestCount;
 
   BookListing({
     required this.id,
@@ -194,6 +196,8 @@ class BookListing {
     this.category,
     this.isSaved = false,
     this.isOwner = false,
+    this.buyerContactInfo,
+    this.requestCount = 0,
   });
 
   factory BookListing.fromJson(Map<String, dynamic> json) {
@@ -231,6 +235,8 @@ class BookListing {
           : null,
       isSaved: json['isSaved'] as bool? ?? false,
       isOwner: json['isOwner'] as bool? ?? false,
+      buyerContactInfo: json['buyerContactInfo'] as String?,
+      requestCount: json['requestCount'] as int? ?? 0,
     );
   }
 
@@ -275,6 +281,68 @@ class SavedBook {
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       listing: json['listing'] != null
           ? BookListing.fromJson(json['listing'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+/// Book purchase request status enum
+enum RequestStatus {
+  pending('pending', 'Pending'),
+  accepted('accepted', 'Accepted'),
+  rejected('rejected', 'Rejected'),
+  cancelled('cancelled', 'Cancelled');
+
+  const RequestStatus(this.value, this.label);
+  final String value;
+  final String label;
+
+  static RequestStatus fromString(String? value) {
+    return RequestStatus.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => RequestStatus.pending,
+    );
+  }
+}
+
+/// Book purchase request model
+class BookPurchaseRequest {
+  final int id;
+  final int listingId;
+  final String buyerId;
+  final RequestStatus status;
+  final String? message;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final BookListing? listing;
+  final BookSeller? buyer;
+
+  BookPurchaseRequest({
+    required this.id,
+    required this.listingId,
+    required this.buyerId,
+    required this.status,
+    this.message,
+    required this.createdAt,
+    required this.updatedAt,
+    this.listing,
+    this.buyer,
+  });
+
+  factory BookPurchaseRequest.fromJson(Map<String, dynamic> json) {
+    return BookPurchaseRequest(
+      id: json['id'] as int,
+      listingId: json['listingId'] as int,
+      buyerId: json['buyerId'] as String,
+      status: RequestStatus.fromString(json['status'] as String?),
+      message: json['message'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      listing: json['listing'] != null
+          ? BookListing.fromJson(json['listing'] as Map<String, dynamic>)
+          : null,
+      buyer: json['buyer'] != null
+          ? BookSeller.fromJson(json['buyer'] as Map<String, dynamic>)
           : null,
     );
   }

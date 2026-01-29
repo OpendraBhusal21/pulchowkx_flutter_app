@@ -66,6 +66,7 @@ class ApiService {
     required String email,
     required String name,
     String? image,
+    String? fcmToken,
   }) async {
     try {
       final response = await http.post(
@@ -76,6 +77,7 @@ class ApiService {
           'email': email,
           'name': name,
           'image': image,
+          'fcmToken': fcmToken,
         }),
       );
 
@@ -1456,6 +1458,173 @@ class ApiService {
     } catch (e) {
       debugPrint('Error fetching book categories: $e');
       return [];
+    }
+  }
+
+  // ==================== BOOK PURCHASE REQUESTS ====================
+
+  /// Create a purchase request for a book
+  Future<Map<String, dynamic>> createPurchaseRequest(
+    int listingId,
+    String? message,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/request'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'message': message}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get purchase requests for a specific listing (seller's view)
+  Future<List<BookPurchaseRequest>> getListingRequests(int listingId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/requests'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map(
+                (e) => BookPurchaseRequest.fromJson(e as Map<String, dynamic>),
+              )
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching listing requests: $e');
+      return [];
+    }
+  }
+
+  /// Get my outgoing purchase requests (buyer's view)
+  Future<List<BookPurchaseRequest>> getMyPurchaseRequests() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/my-requests'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map(
+                (e) => BookPurchaseRequest.fromJson(e as Map<String, dynamic>),
+              )
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching my requests: $e');
+      return [];
+    }
+  }
+
+  /// Respond to a purchase request (Accept/Reject)
+  Future<Map<String, dynamic>> respondToPurchaseRequest(
+    int requestId,
+    bool accept,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/books/requests/$requestId/respond'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'accept': accept}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Get status of my request for a specific listing
+  Future<BookPurchaseRequest?> getPurchaseRequestStatus(int listingId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return null;
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/books/listings/$listingId/request-status'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return BookPurchaseRequest.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching request status: $e');
+      return null;
+    }
+  }
+
+  /// Cancel a purchase request
+  Future<Map<String, dynamic>> cancelPurchaseRequest(int requestId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/books/requests/$requestId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 
