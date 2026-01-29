@@ -248,7 +248,9 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                           Theme.of(
                             context,
                           ).inputDecorationTheme.border?.borderSide.color ??
-                          AppColors.border,
+                          (Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.borderDark
+                              : AppColors.border),
                     ),
                   ),
                   child: TextField(
@@ -337,7 +339,13 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                   },
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Container(width: 1, height: 20, color: AppColors.border),
+                Container(
+                  width: 1,
+                  height: 20,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.borderDark
+                      : AppColors.border,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 ...BookCondition.values.map(
                   (condition) => _FilterChip(
@@ -369,7 +377,11 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          color:
+              Theme.of(context).dividerTheme.color ??
+              (Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.borderDark
+                  : AppColors.border),
         ),
       ),
       child: Column(
@@ -649,7 +661,10 @@ class _BookCard extends StatelessWidget {
                             borderRadius: 0,
                           ),
                           errorWidget: (context, url, error) => Container(
-                            color: AppColors.backgroundSecondary,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.backgroundSecondaryDark
+                                : AppColors.backgroundSecondary,
                             child: const Icon(
                               Icons.menu_book_rounded,
                               size: 40,
@@ -658,7 +673,9 @@ class _BookCard extends StatelessWidget {
                           ),
                         )
                       : Container(
-                          color: AppColors.backgroundSecondary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.backgroundSecondaryDark
+                              : AppColors.backgroundSecondary,
                           child: const Center(
                             child: Icon(
                               Icons.menu_book_rounded,

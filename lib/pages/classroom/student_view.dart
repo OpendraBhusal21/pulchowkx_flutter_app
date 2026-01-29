@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:confetti/confetti.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -390,10 +391,19 @@ class SubmitAssignmentDialog extends StatefulWidget {
 }
 
 class _SubmitAssignmentDialogState extends State<SubmitAssignmentDialog> {
+  late ConfettiController _confettiController;
   final _commentController = TextEditingController();
   File? _selectedFile;
   String? _fileName;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
+  }
 
   Future<void> _pickFile() async {
     try {
@@ -461,7 +471,7 @@ class _SubmitAssignmentDialogState extends State<SubmitAssignmentDialog> {
 
     if (mounted) {
       if (result['success'] == true) {
-        Navigator.pop(context);
+        _confettiController.play();
         widget.onSubmitted();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -469,6 +479,11 @@ class _SubmitAssignmentDialogState extends State<SubmitAssignmentDialog> {
             backgroundColor: AppColors.success,
           ),
         );
+        // Let the confetti play for a bit before closing
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (mounted) {
+          Navigator.pop(context);
+        }
       } else {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -483,91 +498,129 @@ class _SubmitAssignmentDialogState extends State<SubmitAssignmentDialog> {
 
   @override
   void dispose() {
+    _confettiController.dispose();
     _commentController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Submit: ${widget.assignment.title}'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.assignment.description != null) ...[
-              Text(
-                widget.assignment.description!,
-                style: AppTextStyles.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            GestureDetector(
-              onTap: _pickFile,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: _selectedFile != null
-                        ? AppColors.primary
-                        : AppColors.border,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      _selectedFile != null
-                          ? Icons.insert_drive_file
-                          : Icons.upload_file,
-                      color: AppColors.primary,
-                      size: 32,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
+    return Stack(
+      children: [
+        AlertDialog(
+          title: Text('Submit: ${widget.assignment.title}'),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.lg,
+          ),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.assignment.description != null) ...[
                     Text(
-                      _fileName ?? 'Tap to select file',
+                      widget.assignment.description!,
                       style: AppTextStyles.bodySmall,
-                      textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: AppSpacing.md),
                   ],
-                ),
+                  GestureDetector(
+                    onTap: _pickFile,
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.backgroundSecondaryDark
+                            : AppColors.backgroundSecondary,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(
+                          color: _selectedFile != null
+                              ? AppColors.primary
+                              : (Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.borderDark
+                                    : AppColors.border),
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            _selectedFile != null
+                                ? Icons.insert_drive_file
+                                : Icons.upload_file,
+                            color: AppColors.primary,
+                            size: 32,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            _fileName ?? 'Tap to select file',
+                            style: AppTextStyles.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: _commentController,
+                    decoration: InputDecoration(
+                      hintText: 'Add a comment (optional)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _commentController,
-              decoration: InputDecoration(
-                hintText: 'Add a comment (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: _isSubmitting ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
               ),
-              maxLines: 3,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Submit'),
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isSubmitting ? null : _submit,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Submit'),
+        Align(
+          alignment: Alignment.center,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            particleDrag: 0.05,
+            emissionFrequency: 0.05,
+            numberOfParticles: 20,
+            gravity: 0.05,
+            shouldLoop: false,
+            colors: const [
+              Colors.green,
+              Colors.blue,
+              Colors.pink,
+              Colors.orange,
+              Colors.purple,
+              AppColors.primary,
+            ],
+          ),
         ),
       ],
     );

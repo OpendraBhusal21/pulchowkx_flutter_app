@@ -286,15 +286,24 @@ class _SellBookPageState extends State<SellBookPage> {
                       spacing: AppSpacing.sm,
                       children: BookCondition.values.map((c) {
                         final isSelected = _condition == c;
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
                         return ChoiceChip(
                           label: Text(c.label),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _condition = c),
-                          selectedColor: AppColors.primaryLight,
+                          selectedColor: AppColors.primary.withValues(
+                            alpha: 0.2,
+                          ),
+                          backgroundColor: isDark
+                              ? AppColors.backgroundSecondaryDark
+                              : AppColors.backgroundSecondary,
                           labelStyle: TextStyle(
                             color: isSelected
                                 ? AppColors.primary
-                                : AppColors.textSecondary,
+                                : (isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondary),
                           ),
                         );
                       }).toList(),
@@ -507,15 +516,26 @@ class _SellBookPageState extends State<SellBookPage> {
               fillColor: Theme.of(context).inputDecorationTheme.fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.borderDark
+                      : AppColors.border,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.borderDark
+                      : AppColors.border,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide(color: AppColors.primary),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.all(AppSpacing.md),
             ),

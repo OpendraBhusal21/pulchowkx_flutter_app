@@ -12,7 +12,7 @@ import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/pages/favorites_page.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
-import 'package:pulchowkx_app/main.dart' show themeProvider;
+import 'package:pulchowkx_app/pages/settings_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -115,117 +115,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  void _showSettingsSheet(BuildContext context) {
-    HapticFeedback.mediumImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ListenableBuilder(
-        listenable: themeProvider,
-        builder: (context, child) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          return Container(
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceDark : AppColors.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppRadius.xl),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle
-                Center(
-                  child: Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.borderDark : AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: AppColors.primaryGradient,
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                            ),
-                            child: const Icon(
-                              Icons.settings_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Text(
-                            'Settings',
-                            style: AppTextStyles.h4.copyWith(
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Text(
-                        'Appearance',
-                        style: AppTextStyles.labelLarge.copyWith(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      _ThemeModeOption(
-                        icon: Icons.light_mode_rounded,
-                        title: 'Light',
-                        isSelected: themeProvider.themeMode == ThemeMode.light,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          themeProvider.setThemeMode(ThemeMode.light);
-                        },
-                      ),
-                      _ThemeModeOption(
-                        icon: Icons.dark_mode_rounded,
-                        title: 'Dark',
-                        isSelected: themeProvider.themeMode == ThemeMode.dark,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          themeProvider.setThemeMode(ThemeMode.dark);
-                        },
-                      ),
-                      _ThemeModeOption(
-                        icon: Icons.brightness_auto_rounded,
-                        title: 'System',
-                        isSelected: themeProvider.themeMode == ThemeMode.system,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          themeProvider.setThemeMode(ThemeMode.system);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     User? user;
@@ -305,9 +194,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         color: Theme.of(context).cardTheme.color,
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                         border: Border.all(
-                          color:
-                              Theme.of(context).dividerTheme.color ??
-                              AppColors.border,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.borderDark
+                              : AppColors.border,
                         ),
                         boxShadow:
                             Theme.of(context).brightness == Brightness.light
@@ -369,8 +258,20 @@ class _DashboardPageState extends State<DashboardPage> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: _isAdmin
-                                              ? AppColors.accentLight
-                                              : AppColors.successLight,
+                                              ? (Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? AppColors.accent
+                                                          .withValues(
+                                                            alpha: 0.15,
+                                                          )
+                                                    : AppColors.accentLight)
+                                              : (Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? AppColors.success
+                                                          .withValues(
+                                                            alpha: 0.15,
+                                                          )
+                                                    : AppColors.successLight),
                                           borderRadius: BorderRadius.circular(
                                             AppRadius.full,
                                           ),
@@ -468,6 +369,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               title: 'Create Club',
                               description: 'Start a new club community.',
                               color: Colors.purple,
+                              heroTag: 'hero-create-club',
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -484,6 +386,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             description:
                                 'Explore clubs and discover upcoming events.',
                             color: AppColors.accent,
+                            heroTag: 'hero-clubs',
                             onTap: () {
                               final mainLayout = MainLayout.of(context);
                               if (mainLayout != null) {
@@ -506,6 +409,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             description:
                                 'Quickly access your saved clubs and events.',
                             color: Colors.redAccent,
+                            heroTag: 'hero-favorites',
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -520,7 +424,15 @@ class _DashboardPageState extends State<DashboardPage> {
                             title: 'Settings',
                             description: 'Account settings and preferences.',
                             color: AppColors.textSecondary,
-                            onTap: () => _showSettingsSheet(context),
+                            heroTag: 'hero-settings',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsPage(),
+                                ),
+                              );
+                            },
                           ),
                         ];
 
@@ -616,6 +528,7 @@ class _QuickActionCard extends StatefulWidget {
   final String title;
   final String description;
   final Color color;
+  final String heroTag;
   final VoidCallback? onTap;
 
   const _QuickActionCard({
@@ -623,6 +536,7 @@ class _QuickActionCard extends StatefulWidget {
     required this.title,
     required this.description,
     required this.color,
+    required this.heroTag,
     this.onTap,
   });
 
@@ -672,7 +586,10 @@ class _QuickActionCardState extends State<_QuickActionCard> {
                       color: widget.color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    child: Icon(widget.icon, color: widget.color, size: 22),
+                    child: Hero(
+                      tag: widget.heroTag,
+                      child: Icon(widget.icon, color: widget.color, size: 22),
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(widget.title, style: AppTextStyles.labelLarge),
@@ -689,90 +606,6 @@ class _QuickActionCardState extends State<_QuickActionCard> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ThemeModeOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ThemeModeOption({
-    required this.icon,
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : isDark
-              ? AppColors.backgroundSecondaryDark
-              : AppColors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : isDark
-                ? AppColors.borderDark
-                : AppColors.border,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? AppColors.primary
-                  : isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary,
-              size: 20,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Text(
-              title,
-              style: AppTextStyles.labelLarge.copyWith(
-                color: isSelected
-                    ? AppColors.primary
-                    : isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-            const Spacer(),
-            if (isSelected)
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 14,
-                ),
-              ),
-          ],
         ),
       ),
     );

@@ -74,10 +74,13 @@ class _ClubsPageState extends State<ClubsPage> {
                           borderRadius: BorderRadius.circular(AppRadius.lg),
                           boxShadow: AppShadows.colored(AppColors.primary),
                         ),
-                        child: const Icon(
-                          Icons.groups_rounded,
-                          size: 32,
-                          color: Colors.white,
+                        child: Hero(
+                          tag: 'hero-clubs',
+                          child: const Icon(
+                            Icons.groups_rounded,
+                            size: 32,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),

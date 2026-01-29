@@ -144,9 +144,55 @@ class _FavoritesPageState extends State<FavoritesPage>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildEventsList(), _buildClubsList()],
+      body: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Center(
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.redAccent, Colors.pinkAccent],
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      boxShadow: AppShadows.colored(Colors.redAccent),
+                    ),
+                    child: const Hero(
+                      tag: 'hero-favorites',
+                      child: Icon(
+                        Icons.favorite_rounded,
+                        size: 32,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Your Favorites',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Quick access to your saved items',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildEventsList(), _buildClubsList()],
+            ),
+          ),
+        ],
       ),
     );
   }

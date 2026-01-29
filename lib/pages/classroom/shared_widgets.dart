@@ -385,9 +385,11 @@ class EmptySubjects extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
       ),
       child: Column(
         children: [
