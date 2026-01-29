@@ -385,10 +385,58 @@ class _AssignmentSubmissionsDialogState
     }
   }
 
+  Future<void> _handleExportSubmissions(String format) async {
+    try {
+      final url = await widget.apiService.getExportAssignmentSubmissionsUrl(
+        widget.assignmentId,
+        format,
+      );
+
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          _showSnackBar('Could not launch export URL', isError: true);
+        }
+      }
+    } catch (e) {
+      _showSnackBar('Failed to generate export URL', isError: true);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.error : AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Submissions: ${widget.assignmentTitle}'),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text('Submissions: ${widget.assignmentTitle}')),
+          if (!_isLoading && _submissions.isNotEmpty) ...[
+            _buildExportChip(
+              label: 'CSV',
+              icon: Icons.table_chart_rounded,
+              onTap: () => _handleExportSubmissions('csv'),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            _buildExportChip(
+              label: 'PDF',
+              icon: Icons.picture_as_pdf_rounded,
+              onTap: () => _handleExportSubmissions('pdf'),
+            ),
+          ],
+        ],
+      ),
       content: SizedBox(
         width: double.maxFinite,
         height: 400,
@@ -443,6 +491,39 @@ class _AssignmentSubmissionsDialogState
           child: const Text('Close'),
         ),
       ],
+    );
+  }
+
+  Widget _buildExportChip({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.primary,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

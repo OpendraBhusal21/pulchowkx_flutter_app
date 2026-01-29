@@ -285,7 +285,13 @@ class _RequestCard extends StatelessWidget {
                               imageUrl: request.listing!.primaryImageUrl!,
                               fit: BoxFit.cover,
                             )
-                          : Container(color: AppColors.backgroundSecondary),
+                          : Container(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? AppColors.backgroundSecondaryDark
+                                  : AppColors.backgroundSecondary,
+                            ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -332,13 +338,18 @@ class _RequestCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundSecondary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.backgroundSecondaryDark
+                        : AppColors.backgroundSecondary,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Text(
                     request.message!,
                     style: AppTextStyles.bodySmall.copyWith(
                       fontStyle: FontStyle.italic,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),

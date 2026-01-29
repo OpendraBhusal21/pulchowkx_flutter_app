@@ -885,6 +885,26 @@ class ApiService {
     }
   }
 
+  /// Get export URL for registered students
+  Future<String?> getExportRegisteredStudentsUrl(
+    int eventId,
+    String format,
+  ) async {
+    final userId = await getDatabaseUserId();
+    if (userId == null) return null;
+    return '$apiBaseUrl/events/$eventId/export-students?format=$format&token=$userId';
+  }
+
+  /// Get export URL for assignment submissions
+  Future<String?> getExportAssignmentSubmissionsUrl(
+    int assignmentId,
+    String format,
+  ) async {
+    final userId = await getDatabaseUserId();
+    if (userId == null) return null;
+    return '$apiBaseUrl/classroom/assignments/$assignmentId/export-submissions?format=$format&token=$userId';
+  }
+
   /// Get extra event details
   Future<Map<String, dynamic>?> getExtraEventDetails(int eventId) async {
     try {

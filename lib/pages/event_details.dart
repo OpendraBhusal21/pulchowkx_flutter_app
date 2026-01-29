@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/services/analytics_service.dart';
@@ -45,6 +47,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool _loadingStudents = false;
   Map<String, dynamic>? _extraDetails;
   bool _isEditingDetails = false;
+  bool _isUploadingBanner = false;
 
   @override
   void initState() {
@@ -428,6 +431,69 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     }
   }
 
+  Future<void> _handleUpdateBanner() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      imageQuality: 85,
+    );
+
+    if (image == null || _fullEvent == null) return;
+
+    setState(() => _isUploadingBanner = true);
+
+    try {
+      final result = await _apiService.uploadEventBanner(
+        _fullEvent!.id,
+        File(image.path),
+      );
+
+      if (mounted) {
+        if (result['success'] == true) {
+          _showSnackBar('Event banner updated successfully!');
+          _loadFullEventData(); // Refresh to show new banner
+        } else {
+          _showSnackBar(
+            result['message'] ?? 'Failed to update banner',
+            isError: true,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('An error occurred while uploading', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingBanner = false);
+      }
+    }
+  }
+
+  Future<void> _handleExportStudents(String format) async {
+    if (_fullEvent == null) return;
+
+    try {
+      final url = await _apiService.getExportRegisteredStudentsUrl(
+        _fullEvent!.id,
+        format,
+      );
+
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          _showSnackBar('Could not launch export URL', isError: true);
+        }
+      }
+    } catch (e) {
+      _showSnackBar('Failed to generate export URL', isError: true);
+    }
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -629,6 +695,51 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                     ],
                   ),
                 ),
+
+                // Admin: Edit Banner Button
+                if (_isClubOwner)
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: ElevatedButton.icon(
+                      onPressed: _isUploadingBanner
+                          ? null
+                          : _handleUpdateBanner,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black.withValues(alpha: 0.6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      ),
+                      icon: _isUploadingBanner
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.camera_alt_rounded, size: 16),
+                      label: Text(
+                        _isUploadingBanner ? 'Updating...' : 'Edit Cover',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -844,6 +955,33 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       ),
                     ],
                   ),
+                  if (_registeredStudents.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        Text(
+                          'Export as:',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _buildExportChip(
+                          label: 'CSV',
+                          icon: Icons.table_chart_rounded,
+                          onTap: () => _handleExportStudents('csv'),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _buildExportChip(
+                          label: 'PDF',
+                          icon: Icons.picture_as_pdf_rounded,
+                          onTap: () => _handleExportStudents('pdf'),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.sm),
                   if (_loadingStudents)
                     const Center(
@@ -1231,6 +1369,38 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     } catch (e) {
       _showSnackBar('Invalid registration link', isError: true);
     }
+  }
+
+  Widget _buildExportChip({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
