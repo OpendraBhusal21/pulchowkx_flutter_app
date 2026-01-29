@@ -127,6 +127,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
       });
 
       // Also select time
+      if (!context.mounted) return;
       final TimeOfDay? timePicked = await showTimePicker(
         context: context,
         initialTime: _registrationTime,

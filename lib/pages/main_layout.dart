@@ -95,10 +95,8 @@ class MainLayoutState extends State<MainLayout> {
             _selectedIndex = 0;
           });
         } else {
-          // Fallback: Use the root navigator (usually exits the app)
-          if (context.mounted) {
-            Navigator.of(context).pop();
-          }
+          // Properly exit the app if we are on the home screen and can't pop anymore
+          SystemNavigator.pop();
         }
       },
       child: Scaffold(
