@@ -570,14 +570,13 @@ class _MapPageState extends State<MapPage> {
     }
 
     try {
-      // Create a rect for hit detection that extends upward from tap point
-      // since icons have iconAnchor: 'bottom' (icon renders above the point)
-      // and also extends below for labels (textAnchor: 'top')
+      // Create a generous rect for hit detection to make it easier to tap icons
+      // Icons typically have iconAnchor: 'bottom' and labels have textAnchor: 'top'
       final tapRect = Rect.fromLTRB(
-        point.x - 40, // left (extended more for label text)
-        point.y - 60, // top (extend more upward for icons)
-        point.x + 30, // right
-        point.y + 30, // bottom (for labels below)
+        point.x - 60, // left
+        point.y - 80, // top
+        point.x + 60, // right
+        point.y + 40, // bottom (for labels below)
       );
 
       // Query rendered features in the rect area - only the markers-layer
@@ -587,12 +586,8 @@ class _MapPageState extends State<MapPage> {
         null,
       );
 
-      debugPrint('🔍 Queried features at point: ${features.length} found');
-
       if (features.isNotEmpty) {
         final feature = features.first;
-        debugPrint('📍 Feature type: ${feature.runtimeType}');
-        debugPrint('📍 Feature: $feature');
 
         // Extract title from the feature
         String? title;
@@ -606,8 +601,6 @@ class _MapPageState extends State<MapPage> {
           // Fall back to root level
           title ??= feature['title']?.toString();
         }
-
-        debugPrint('📌 Title extracted: $title');
 
         if (title != null && title.isNotEmpty) {
           final location = _locations.firstWhere(

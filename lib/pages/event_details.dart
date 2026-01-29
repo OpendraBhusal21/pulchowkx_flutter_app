@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/event_status_badge.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailsPage extends StatefulWidget {
   /// The event to display. Can be partial data (from enrollments) or full data.
@@ -190,7 +191,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         title: const Text('Edit Event Details'),
-        titleTextStyle: AppTextStyles.h4,
+        titleTextStyle: Theme.of(
+          context,
+        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         content: SizedBox(
           width: MediaQuery.of(context).size.width * 0.9,
           child: SingleChildScrollView(
@@ -371,10 +374,12 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         title: const Text('Cancel Registration'),
-        titleTextStyle: AppTextStyles.h4,
+        titleTextStyle: Theme.of(
+          context,
+        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         content: Text(
           'Are you sure you want to cancel your registration for this event?',
-          style: AppTextStyles.bodyMedium,
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
@@ -749,8 +754,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       _extraDetails?['fullDescription']?.isNotEmpty == true
                           ? _extraDetails!['fullDescription']!
                           : (event.description ?? 'No description available'),
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.6,
                       ),
                     ),
@@ -817,7 +822,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       Text(
                         'Registered Students',
                         style: AppTextStyles.h4.copyWith(
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       Container(
@@ -862,16 +867,21 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       child: Center(
                         child: Column(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.people_outline_rounded,
                               size: 48,
-                              color: AppColors.textSecondary,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.6),
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             Text(
                               'No students registered yet',
                               style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -919,7 +929,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                             subtitle: Text(
                               user['email'] ?? '',
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             trailing: Builder(
@@ -988,7 +1000,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         const SizedBox(height: AppSpacing.xl),
         Text(
           title,
-          style: AppTextStyles.h4.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.h4.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Container(
@@ -1004,7 +1018,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           child: Text(
             content,
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.6,
             ),
           ),
@@ -1015,6 +1029,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   Widget _buildActionButton(ClubEvent event) {
     final user = FirebaseAuth.instance.currentUser;
+    // Admins/owners cannot register
+    if (_isClubOwner) return const SizedBox.shrink();
 
     // Not logged in
     if (user == null) {
@@ -1150,6 +1166,29 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     }
 
     // Can register
+    // CASE 1: External registration link provided (Exclusive)
+    if (event.externalRegistrationLink != null &&
+        event.externalRegistrationLink!.isNotEmpty) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () =>
+              _handleExternalRegister(event.externalRegistrationLink!),
+          icon: const Icon(Icons.open_in_new_rounded),
+          label: const Text('Register Externally (Google Form/Other)'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // CASE 2: Normal Internal Registration
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -1175,6 +1214,23 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleExternalRegister(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        AnalyticsService.logEvent('external_registration_click', {
+          'event_id': _fullEvent?.id as Object,
+          'url': url,
+        });
+      } else {
+        _showSnackBar('Could not open registration link', isError: true);
+      }
+    } catch (e) {
+      _showSnackBar('Invalid registration link', isError: true);
+    }
   }
 }
 
@@ -1210,7 +1266,7 @@ class _InfoCard extends StatelessWidget {
               Text(
                 title,
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

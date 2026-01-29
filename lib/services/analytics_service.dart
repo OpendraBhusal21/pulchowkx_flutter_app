@@ -55,4 +55,15 @@ class AnalyticsService {
   static Future<void> setUserProperty(String name, String value) async {
     await _analytics.setUserProperty(name: name, value: value);
   }
+
+  static Future<void> logEvent(
+    String name,
+    Map<String, Object>? parameters,
+  ) async {
+    try {
+      await _analytics.logEvent(name: name, parameters: parameters);
+    } catch (e) {
+      debugPrint('Analytics logEvent error: $e');
+    }
+  }
 }

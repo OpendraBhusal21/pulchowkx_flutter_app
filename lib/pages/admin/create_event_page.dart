@@ -31,6 +31,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   final _picker = ImagePicker();
   File? _imageFile;
   final _bannerUrlController = TextEditingController();
+  final _externalRegistrationLinkController = TextEditingController();
 
   // Form state
   String _selectedEventType = 'workshop';
@@ -63,6 +64,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     _venueController.dispose();
     _maxParticipantsController.dispose();
     _bannerUrlController.dispose();
+    _externalRegistrationLinkController.dispose();
     super.dispose();
   }
 
@@ -199,6 +201,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
         eventStartTime: _formatDateTime(_startDate, _startTime),
         eventEndTime: _formatDateTime(_endDate, _endTime),
         bannerUrl: bannerUrl.isNotEmpty == true ? bannerUrl : null,
+        externalRegistrationLink:
+            _externalRegistrationLinkController.text.trim().isEmpty
+            ? null
+            : _externalRegistrationLinkController.text.trim(),
       );
 
       if (result['success'] == true) {
@@ -476,6 +482,18 @@ class _CreateEventPageState extends State<CreateEventPage> {
             _buildSectionHeader('Media (Optional)'),
             const SizedBox(height: 16),
             _buildImagePickerSection(),
+            const SizedBox(height: 24),
+
+            // External Links Section
+            _buildSectionHeader('Registration Options'),
+            const SizedBox(height: 12),
+            _buildTextField(
+              controller: _externalRegistrationLinkController,
+              label: 'External Registration Link (Optional)',
+              hint: 'e.g. https://forms.gle/...',
+              icon: Icons.link,
+              keyboardType: TextInputType.url,
+            ),
             const SizedBox(height: 24),
 
             // Submit Button

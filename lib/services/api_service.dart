@@ -567,6 +567,7 @@ class ApiService {
     required String eventStartTime,
     required String eventEndTime,
     String? bannerUrl,
+    String? externalRegistrationLink,
   }) async {
     try {
       final userId = await getDatabaseUserId();
@@ -588,6 +589,7 @@ class ApiService {
           'eventStartTime': eventStartTime,
           'eventEndTime': eventEndTime,
           'bannerUrl': bannerUrl,
+          'externalRegistrationLink': externalRegistrationLink,
         }),
       );
 

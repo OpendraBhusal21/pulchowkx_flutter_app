@@ -20,6 +20,7 @@ class ClubEvent {
   final DateTime eventStartTime;
   final DateTime eventEndTime;
   final String? bannerUrl;
+  final String? externalRegistrationLink;
   final bool isRegistrationOpen;
   final DateTime createdAt;
   final Club? club;
@@ -38,6 +39,7 @@ class ClubEvent {
     required this.eventStartTime,
     required this.eventEndTime,
     this.bannerUrl,
+    this.externalRegistrationLink,
     this.isRegistrationOpen = true,
     required this.createdAt,
     this.club,
@@ -60,6 +62,7 @@ class ClubEvent {
       eventStartTime: DateTime.parse(json['eventStartTime'] as String),
       eventEndTime: DateTime.parse(json['eventEndTime'] as String),
       bannerUrl: json['bannerUrl'] as String?,
+      externalRegistrationLink: json['externalRegistrationLink'] as String?,
       isRegistrationOpen: json['isRegistrationOpen'] as bool? ?? true,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
@@ -103,6 +106,7 @@ class ClubEvent {
           ? DateTime.parse(json['eventEndTime'].toString())
           : DateTime.now().add(const Duration(hours: 2)),
       bannerUrl: json['bannerUrl']?.toString(),
+      externalRegistrationLink: json['externalRegistrationLink']?.toString(),
       isRegistrationOpen: json['isRegistrationOpen'] is bool
           ? json['isRegistrationOpen'] as bool
           : true,
