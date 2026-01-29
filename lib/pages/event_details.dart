@@ -190,6 +190,10 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.lg,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
@@ -198,7 +202,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           context,
         ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.9,
+          width: MediaQuery.of(context).size.width,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,

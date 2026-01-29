@@ -258,6 +258,10 @@ class _ClubAdminTabState extends State<ClubAdminTab> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.lg,
+        ),
         title: const Text('Remove Admin'),
         content: const Text('Are you sure you want to remove this admin?'),
         actions: [

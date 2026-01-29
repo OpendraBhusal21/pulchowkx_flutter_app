@@ -491,63 +491,74 @@ class _SubmitAssignmentDialogState extends State<SubmitAssignmentDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Submit: ${widget.assignment.title}'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.assignment.description != null) ...[
-              Text(
-                widget.assignment.description!,
-                style: AppTextStyles.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            GestureDetector(
-              onTap: _pickFile,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: _selectedFile != null
-                        ? AppColors.primary
-                        : AppColors.border,
-                    style: BorderStyle.solid,
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.lg,
+      ),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.assignment.description != null) ...[
+                Text(
+                  widget.assignment.description!,
+                  style: AppTextStyles.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              GestureDetector(
+                onTap: _pickFile,
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.backgroundSecondaryDark
+                        : AppColors.backgroundSecondary,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: _selectedFile != null
+                          ? AppColors.primary
+                          : (Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.borderDark
+                                : AppColors.border),
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        _selectedFile != null
+                            ? Icons.insert_drive_file
+                            : Icons.upload_file,
+                        color: AppColors.primary,
+                        size: 32,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        _fileName ?? 'Tap to select file',
+                        style: AppTextStyles.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Icon(
-                      _selectedFile != null
-                          ? Icons.insert_drive_file
-                          : Icons.upload_file,
-                      color: AppColors.primary,
-                      size: 32,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      _fileName ?? 'Tap to select file',
-                      style: AppTextStyles.bodySmall,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _commentController,
-              decoration: InputDecoration(
-                hintText: 'Add a comment (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: _commentController,
+                decoration: InputDecoration(
+                  hintText: 'Add a comment (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
                 ),
+                maxLines: 3,
               ),
-              maxLines: 3,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
