@@ -185,61 +185,38 @@ class _MyBooksPageState extends State<MyBooksPage>
 
   Widget _buildMyListings() {
     if (_myListings.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.sell_outlined,
-                size: 48,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text("You haven't listed any books", style: AppTextStyles.h4),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Sell your old textbooks to fellow students!',
-              style: AppTextStyles.bodyMedium,
-            ),
-          ],
-        ),
+      return _buildEmptyState(
+        'You haven\'t listed any books yet.',
+        Icons.library_books_outlined,
+        'Start Selling',
+        () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SellBookPage()),
+          ).then((_) => _loadData());
+        },
       );
     }
 
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.md),
         itemCount: _myListings.length,
         itemBuilder: (context, index) {
-          final listing = _myListings[index];
           return _MyListingCard(
-            listing: listing,
+            listing: _myListings[index],
+            onDelete: () => _deleteListing(_myListings[index]),
+            onMarkSold: () => _markAsSold(_myListings[index]),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => BookDetailsPage(bookId: listing.id),
+                  builder: (context) =>
+                      BookDetailsPage(bookId: _myListings[index].id),
                 ),
               ).then((_) => _loadData());
             },
-            onEdit: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SellBookPage(existingBook: listing),
-                ),
-              ).then((_) => _loadData());
-            },
-            onMarkSold: listing.isAvailable ? () => _markAsSold(listing) : null,
-            onDelete: () => _deleteListing(listing),
           );
         },
       ),
@@ -248,57 +225,57 @@ class _MyBooksPageState extends State<MyBooksPage>
 
   Widget _buildSavedBooks() {
     if (_savedBooks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.bookmark_outline,
-                size: 48,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text('No saved books', style: AppTextStyles.h4),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Save books to keep track of ones you like!',
-              style: AppTextStyles.bodyMedium,
-            ),
-          ],
-        ),
+      return _buildEmptyState(
+        'No saved books yet.',
+        Icons.bookmark_border,
+        'Browse Marketplace',
+        () => Navigator.pop(context),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        itemCount: _savedBooks.length,
-        itemBuilder: (context, index) {
-          final saved = _savedBooks[index];
-          if (saved.listing == null) return const SizedBox.shrink();
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      itemCount: _savedBooks.length,
+      itemBuilder: (context, index) {
+        return _SavedBookCard(
+          savedBook: _savedBooks[index],
+          onUnsave: () => _unsaveBook(_savedBooks[index]),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    BookDetailsPage(bookId: _savedBooks[index].listingId),
+              ),
+            ).then((_) => _loadData());
+          },
+        );
+      },
+    );
+  }
 
-          return _SavedBookCard(
-            savedBook: saved,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      BookDetailsPage(bookId: saved.listingId),
-                ),
-              ).then((_) => _loadData());
-            },
-            onRemove: () => _unsaveBook(saved),
-          );
-        },
+  Widget _buildEmptyState(
+    String message,
+    IconData icon,
+    String buttonText,
+    VoidCallback onAction,
+  ) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 64, color: Theme.of(context).disabledColor),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            message,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Theme.of(context).disabledColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (buttonText.isNotEmpty)
+            ElevatedButton(onPressed: onAction, child: Text(buttonText)),
+        ],
       ),
     );
   }
@@ -306,133 +283,130 @@ class _MyBooksPageState extends State<MyBooksPage>
 
 class _MyListingCard extends StatelessWidget {
   final BookListing listing;
-  final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback? onMarkSold;
   final VoidCallback onDelete;
+  final VoidCallback onMarkSold;
+  final VoidCallback onTap;
 
   const _MyListingCard({
     required this.listing,
-    required this.onTap,
-    required this.onEdit,
-    this.onMarkSold,
     required this.onDelete,
+    required this.onMarkSold,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: listing.primaryImageUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: listing.primaryImageUrl!,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              color: AppColors.backgroundSecondary,
-                              child: const Icon(
-                                Icons.menu_book_rounded,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            _StatusBadge(status: listing.status),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              listing.formattedPrice,
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          listing.title,
-                          style: AppTextStyles.labelMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          listing.author,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textMuted,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: listing.primaryImageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: listing.primaryImageUrl!,
+                          width: 80,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          width: 80,
+                          height: 100,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            Icons.menu_book,
+                            color: Theme.of(context).disabledColor,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(AppRadius.lg),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (onMarkSold != null)
-                    TextButton.icon(
-                      onPressed: onMarkSold,
-                      icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: const Text('Mark Sold'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.success,
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              listing.title,
+                              style: AppTextStyles.labelLarge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          _StatusBadge(status: listing.status),
+                        ],
                       ),
-                    ),
-                  TextButton.icon(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit'),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        listing.formattedPrice,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.visibility,
+                            size: 14,
+                            color: Theme.of(context).disabledColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${listing.viewCount}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Theme.of(context).disabledColor,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (listing.isAvailable)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.check_circle_outline,
+                                color: AppColors.success,
+                              ),
+                              onPressed: onMarkSold,
+                              tooltip: 'Mark as Sold',
+                            ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: AppColors.error,
+                            ),
+                            onPressed: onDelete,
+                            tooltip: 'Delete',
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  TextButton.icon(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Delete'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -441,83 +415,108 @@ class _MyListingCard extends StatelessWidget {
 
 class _SavedBookCard extends StatelessWidget {
   final SavedBook savedBook;
+  final VoidCallback onUnsave;
   final VoidCallback onTap;
-  final VoidCallback onRemove;
 
   const _SavedBookCard({
     required this.savedBook,
+    required this.onUnsave,
     required this.onTap,
-    required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
-    final listing = savedBook.listing!;
+    // SavedBook might not have full listing details depending on backend response,
+    // assuming it does or has a nested listing object.
+    // Based on API model, SavedBook usually wraps a listing.
+    // If SavedBook structure is: { id, listingId, listing: BookListing }
+    // We'll assume the API returns the listing details populated.
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
+    // Fallback if listing details are missing (though they shouldn't be for this view)
+    final listing = savedBook.listing;
+    if (listing == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: SizedBox(
-                width: 60,
-                height: 60,
-                child: listing.primaryImageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: listing.primaryImageUrl!,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        color: AppColors.backgroundSecondary,
-                        child: const Icon(
-                          Icons.menu_book_rounded,
-                          color: AppColors.textMuted,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: listing.primaryImageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: listing.primaryImageUrl!,
+                          width: 80,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          width: 80,
+                          height: 100,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            Icons.menu_book,
+                            color: Theme.of(context).disabledColor,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        listing.title,
+                        style: AppTextStyles.labelLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        listing.author,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color:
+                              Theme.of(context).textTheme.bodyMedium?.color ??
+                              AppColors.textSecondary,
                         ),
                       ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    listing.title,
-                    style: AppTextStyles.labelMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        listing.formattedPrice,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    listing.author,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    listing.formattedPrice,
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bookmark, color: AppColors.primary),
+                  onPressed: onUnsave,
+                ),
+              ],
             ),
-            IconButton(
-              onPressed: onRemove,
-              icon: const Icon(Icons.bookmark, color: AppColors.primary),
-              tooltip: 'Remove from saved',
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -537,25 +536,24 @@ class _StatusBadge extends StatelessWidget {
         color = AppColors.success;
         break;
       case BookStatus.sold:
-        color = AppColors.error;
+        color = AppColors.textMuted;
         break;
       case BookStatus.pending:
         color = Colors.orange;
         break;
-      case BookStatus.removed:
+      default:
         color = AppColors.textMuted;
-        break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.xs),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         status.label,
-        style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: 10),
+        style: AppTextStyles.labelSmall.copyWith(color: color),
       ),
     );
   }

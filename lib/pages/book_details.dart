@@ -180,12 +180,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).iconTheme.color,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('Book Details', style: AppTextStyles.h4),
@@ -196,7 +199,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 _book!.isSaved ? Icons.bookmark : Icons.bookmark_border,
                 color: _book!.isSaved
                     ? AppColors.primary
-                    : AppColors.textSecondary,
+                    : Theme.of(context).iconTheme.color,
               ),
               onPressed: _toggleSave,
             ),
@@ -250,7 +253,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 Text(
                   'by ${_book!.author}',
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textSecondary,
+                    color:
+                        Theme.of(context).textTheme.bodyMedium?.color ??
+                        AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -276,12 +281,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     if (images.isEmpty) {
       return Container(
         height: 300,
-        color: AppColors.backgroundSecondary,
-        child: const Center(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Center(
           child: Icon(
             Icons.menu_book_rounded,
             size: 80,
-            color: AppColors.textMuted,
+            color: Theme.of(context).disabledColor,
           ),
         ),
       );
@@ -302,7 +307,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 placeholder: (context, url) =>
                     const BoxShimmer(height: double.infinity, borderRadius: 0),
                 errorWidget: (context, url, error) => Container(
-                  color: AppColors.backgroundSecondary,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: const Icon(Icons.error, color: AppColors.error),
                 ),
               );
@@ -328,7 +333,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   shape: BoxShape.circle,
                   color: index == _currentImageIndex
                       ? AppColors.primary
-                      : AppColors.textMuted,
+                      : Theme.of(context).disabledColor,
                 ),
               ),
             ),
@@ -429,9 +434,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
           child: Text(_book!.description!, style: AppTextStyles.bodyMedium),
         ),
@@ -443,9 +448,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,21 +510,29 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
-              Icon(Icons.calendar_today, size: 14, color: AppColors.textMuted),
+              Icon(
+                Icons.calendar_today,
+                size: 14,
+                color: Theme.of(context).disabledColor,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Posted ${_formatDate(_book!.createdAt)}',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textMuted,
+                  color: Theme.of(context).disabledColor,
                 ),
               ),
               const SizedBox(width: AppSpacing.lg),
-              Icon(Icons.visibility, size: 14, color: AppColors.textMuted),
+              Icon(
+                Icons.visibility,
+                size: 14,
+                color: Theme.of(context).disabledColor,
+              ),
               const SizedBox(width: 6),
               Text(
                 '${_book!.viewCount} views',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textMuted,
+                  color: Theme.of(context).disabledColor,
                 ),
               ),
             ],
@@ -553,8 +566,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        color: Theme.of(context).cardColor,
+        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: SafeArea(
         child: ElevatedButton(
@@ -613,9 +626,9 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,7 +636,7 @@ class _InfoChip extends StatelessWidget {
           Text(
             label,
             style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textMuted,
+              color: Theme.of(context).disabledColor,
             ),
           ),
           Text(value, style: AppTextStyles.labelMedium),

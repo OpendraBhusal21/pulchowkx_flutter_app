@@ -337,7 +337,9 @@ class BookPurchaseRequest {
       status: RequestStatus.fromString(json['status'] as String?),
       message: json['message'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : DateTime.parse(json['createdAt'] as String),
       listing: json['listing'] != null
           ? BookListing.fromJson(json['listing'] as Map<String, dynamic>)
           : null,

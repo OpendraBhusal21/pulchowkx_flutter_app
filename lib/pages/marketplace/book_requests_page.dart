@@ -13,13 +13,16 @@ class BookRequestsPage extends StatefulWidget {
 }
 
 class _BookRequestsPageState extends State<BookRequestsPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   final ApiService _apiService = ApiService();
   late TabController _tabController;
 
   List<BookPurchaseRequest> _sentRequests = [];
   List<BookPurchaseRequest> _receivedRequests = [];
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -35,25 +38,24 @@ class _BookRequestsPageState extends State<BookRequestsPage>
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      final sent = await _apiService.getMyPurchaseRequests();
+      final sentFuture = _apiService.getMyPurchaseRequests();
+      final listingsFuture = _apiService.getMyBookListings();
 
-      // For received requests, we need to iterate through my listings and fetch requests for each
-      // Alternatively, the backend should have a GetMyReceivedRequests endpoint.
-      // Checking backend... it doesn't seem to have a single "Get all requests for my books" endpoint.
-      // I'll fetch my listings first, then fetch requests for each listing that has them.
+      final results = await Future.wait([sentFuture, listingsFuture]);
 
-      final myListings = await _apiService.getMyBookListings();
-      List<BookPurchaseRequest> received = [];
+      final sent = results[0] as List<BookPurchaseRequest>;
+      final myListings = results[1] as List<BookListing>;
 
-      for (var listing in myListings) {
-        if (listing.requestCount > 0) {
-          final requests = await _apiService.getListingRequests(listing.id);
-          received.addAll(requests);
-        }
-      }
+      // Parallel fetch for all listing requests
+      final requestsNested = await Future.wait(
+        myListings.map((listing) => _apiService.getListingRequests(listing.id)),
+      );
+
+      final received = requestsNested.expand((r) => r).toList();
 
       if (mounted) {
         setState(() {
@@ -95,9 +97,9 @@ class _BookRequestsPageState extends State<BookRequestsPage>
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Request cancelled.'),
-            backgroundColor: AppColors.textSecondary,
+          SnackBar(
+            content: const Text('Request cancelled.'),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
           ),
         );
       }
@@ -106,89 +108,118 @@ class _BookRequestsPageState extends State<BookRequestsPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Purchase Requests', style: AppTextStyles.h4),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Sent'),
-            Tab(text: 'Received'),
-          ],
+    super.build(context);
+    return Column(
+      children: [
+        Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: TabBar(
+            controller: _tabController,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color,
+            indicatorColor: AppColors.primary,
+            tabs: const [
+              Tab(text: 'Sent'),
+              Tab(text: 'Received'),
+            ],
+          ),
         ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [_buildSentList(), _buildReceivedList()],
-            ),
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                  controller: _tabController,
+                  children: [_buildSentList(), _buildReceivedList()],
+                ),
+        ),
+      ],
     );
   }
 
   Widget _buildSentList() {
     if (_sentRequests.isEmpty) {
-      return _buildEmptyState(
-        'You haven\'t sent any requests yet.',
-        Icons.outbox_outlined,
+      return RefreshIndicator(
+        onRefresh: _loadData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: _buildEmptyState(
+              'You haven\'t sent any requests yet.',
+              Icons.outbox_outlined,
+            ),
+          ),
+        ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      itemCount: _sentRequests.length,
-      itemBuilder: (context, index) {
-        final request = _sentRequests[index];
-        return _RequestCard(
-          request: request,
-          isSent: true,
-          onCancel: () => _cancelRequest(request),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    BookDetailsPage(bookId: request.listingId),
-              ),
-            ).then((_) => _loadData());
-          },
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        itemCount: _sentRequests.length,
+        itemBuilder: (context, index) {
+          final request = _sentRequests[index];
+          return _RequestCard(
+            request: request,
+            isSent: true,
+            onCancel: () => _cancelRequest(request),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      BookDetailsPage(bookId: request.listingId),
+                ),
+              ).then((_) => _loadData());
+            },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildReceivedList() {
     if (_receivedRequests.isEmpty) {
-      return _buildEmptyState(
-        'No requests received for your books.',
-        Icons.inbox_outlined,
+      return RefreshIndicator(
+        onRefresh: _loadData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: _buildEmptyState(
+              'No requests received for your books.',
+              Icons.inbox_outlined,
+            ),
+          ),
+        ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      itemCount: _receivedRequests.length,
-      itemBuilder: (context, index) {
-        final request = _receivedRequests[index];
-        return _RequestCard(
-          request: request,
-          isSent: false,
-          onAccept: () => _respondToRequest(request, true),
-          onReject: () => _respondToRequest(request, false),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    BookDetailsPage(bookId: request.listingId),
-              ),
-            ).then((_) => _loadData());
-          },
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        itemCount: _receivedRequests.length,
+        itemBuilder: (context, index) {
+          final request = _receivedRequests[index];
+          return _RequestCard(
+            request: request,
+            isSent: false,
+            onAccept: () => _respondToRequest(request, true),
+            onReject: () => _respondToRequest(request, false),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      BookDetailsPage(bookId: request.listingId),
+                ),
+              ).then((_) => _loadData());
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -197,12 +228,12 @@ class _BookRequestsPageState extends State<BookRequestsPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: AppColors.textMuted),
+          Icon(icon, size: 64, color: Theme.of(context).disabledColor),
           const SizedBox(height: AppSpacing.md),
           Text(
             message,
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textMuted,
+              color: Theme.of(context).disabledColor,
             ),
           ),
         ],
