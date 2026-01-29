@@ -288,11 +288,15 @@ class _EventCardState extends State<EventCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: _isHovered ? AppColors.accentLight : AppColors.background,
+          color: _isHovered
+              ? (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.backgroundSecondaryDark
+                    : AppColors.accentLight)
+              : Theme.of(context).cardTheme.color,
           border: Border.all(
             color: _isHovered
                 ? AppColors.primary.withValues(alpha: 0.3)
-                : AppColors.border,
+                : Theme.of(context).dividerTheme.color ?? AppColors.border,
           ),
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),

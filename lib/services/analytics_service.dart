@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart';
 
 class AnalyticsService {
   static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
@@ -7,7 +8,11 @@ class AnalyticsService {
   );
 
   static Future<void> logAppOpen() async {
-    await _analytics.logAppOpen();
+    try {
+      await _analytics.logAppOpen();
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
   }
 
   static Future<void> logPageView(String screenName) async {

@@ -228,7 +228,13 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      // Offline/Auth not initialized
+    }
+
     final String displayName = user?.displayName ?? 'User';
     final String email = user?.email ?? 'No email';
     final String? photoUrl = user?.photoURL;

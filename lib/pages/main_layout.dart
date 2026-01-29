@@ -48,7 +48,15 @@ class MainLayoutState extends State<MainLayout> {
     // Check if authentication is required for the target tab
     final bool isProtectedRoute =
         index == 2 || index == 3 || index == 4 || index == 5 || index == 6;
-    final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+
+    bool isLoggedIn = false;
+    try {
+      // Safely check if user is logged in
+      isLoggedIn = FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      // Firebase might not be initialized if offline/error
+      isLoggedIn = false;
+    }
 
     if (isProtectedRoute && !isLoggedIn) {
       // If auth is needed and user is not logged in, switch to login tab (index 7)
@@ -194,10 +202,14 @@ class _BottomNavBar extends StatelessWidget {
               bottom: MediaQuery.of(context).padding.bottom,
             ),
             decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.85),
+              color:
+                  Theme.of(context).cardTheme.color?.withValues(alpha: 0.85) ??
+                  AppColors.surface.withValues(alpha: 0.85),
               border: Border(
                 top: BorderSide(
-                  color: AppColors.border.withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.5),
                   width: 1,
                 ),
               ),
@@ -307,7 +319,11 @@ class _NavIcon extends StatelessWidget {
                 ),
                 Icon(
                   icon,
-                  color: isActive ? AppColors.primary : AppColors.textMuted,
+                  color: isActive
+                      ? AppColors.primary
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                   size: 22,
                 ),
               ],
@@ -318,7 +334,11 @@ class _NavIcon extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? AppColors.primary : AppColors.textMuted,
+                color: isActive
+                    ? AppColors.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
               child: Text(label),
             ),

@@ -135,7 +135,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
   Widget build(BuildContext context) {
     if (_success) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -143,13 +143,13 @@ class _CreateClubPageState extends State<CreateClubPage> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: AppColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.check_circle,
                   size: 80,
-                  color: Colors.green.shade600,
+                  color: AppColors.success,
                 ),
               ),
               const SizedBox(height: 24),
@@ -162,7 +162,9 @@ class _CreateClubPageState extends State<CreateClubPage> {
               const SizedBox(height: 8),
               Text(
                 'Redirecting...',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -171,12 +173,10 @@ class _CreateClubPageState extends State<CreateClubPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Create Club'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
       ),
       body: Form(
         key: _formKey,
@@ -225,10 +225,8 @@ class _CreateClubPageState extends State<CreateClubPage> {
                             const SizedBox(height: 4),
                             Text(
                               'Start a new community at Pulchowk Campus',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 14,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -246,18 +244,20 @@ class _CreateClubPageState extends State<CreateClubPage> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade600),
+                    Icon(Icons.error_outline, color: AppColors.error),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade700),
+                        style: TextStyle(color: AppColors.error),
                       ),
                     ),
                   ],
@@ -321,7 +321,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                 margin: const EdgeInsets.only(top: 16),
                 height: 100,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -341,7 +341,7 @@ class _CreateClubPageState extends State<CreateClubPage> {
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => Icon(
                               Icons.broken_image,
-                              color: Colors.grey.shade400,
+                              color: Theme.of(context).disabledColor,
                               size: 40,
                             ),
                           ),
@@ -431,11 +431,9 @@ class _CreateClubPageState extends State<CreateClubPage> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-      ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 
@@ -460,14 +458,18 @@ class _CreateClubPageState extends State<CreateClubPage> {
         hintText: hint,
         prefixIcon: Icon(icon, color: AppColors.accent),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).cardTheme.color,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

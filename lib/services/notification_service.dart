@@ -9,88 +9,98 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
-    // Request permissions for iOS
-    if (Platform.isIOS) {
-      await _messaging.requestPermission(alert: true, badge: true, sound: true);
-    }
-
-    // Initialize local notifications for foreground alerts
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-    const iosSettings = DarwinInitializationSettings();
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-
-    await _localNotifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
-        debugPrint('Notification tapped: ${response.payload}');
-      },
-    );
-
-    // Create high importance channel for Android
-    if (Platform.isAndroid) {
-      const channel = AndroidNotificationChannel(
-        'high_importance_channel',
-        'High Importance Notifications',
-        description: 'This channel is used for important campus updates.',
-        importance: Importance.max,
-      );
-
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(channel);
-    }
-
-    // Auto-subscribe to events topic
-    await subscribeToTopic('events');
-
-    // Handle background messages
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Got a message whilst in the foreground!');
-
-      final notification = message.notification;
-      final android = message.notification?.android;
-
-      if (notification != null) {
-        _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              'high_importance_channel',
-              'High Importance Notifications',
-              channelDescription:
-                  'This channel is used for important campus updates.',
-              importance: Importance.max,
-              priority: Priority.high,
-              icon: android?.smallIcon,
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
-          ),
-          payload: message.data.toString(),
+    try {
+      // Request permissions for iOS
+      if (Platform.isIOS) {
+        await _messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
         );
       }
-    });
 
-    // Handle message open app
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('A new onMessageOpenedApp event was published!');
-    });
+      // Initialize local notifications for foreground alerts
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
+      const iosSettings = DarwinInitializationSettings();
+      const initSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
+
+      await _localNotifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          // Handle notification tap
+          debugPrint('Notification tapped: ${response.payload}');
+        },
+      );
+
+      // Create high importance channel for Android
+      if (Platform.isAndroid) {
+        const channel = AndroidNotificationChannel(
+          'high_importance_channel',
+          'High Importance Notifications',
+          description: 'This channel is used for important campus updates.',
+          importance: Importance.max,
+        );
+
+        await _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.createNotificationChannel(channel);
+      }
+
+      // Auto-subscribe to events topic
+      await subscribeToTopic('events');
+
+      // Handle background messages
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Got a message whilst in the foreground!');
+
+        final notification = message.notification;
+        final android = message.notification?.android;
+
+        if (notification != null) {
+          _localNotifications.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                'high_importance_channel',
+                'High Importance Notifications',
+                channelDescription:
+                    'This channel is used for important campus updates.',
+                importance: Importance.max,
+                priority: Priority.high,
+                icon: android?.smallIcon,
+              ),
+              iOS: const DarwinNotificationDetails(
+                presentAlert: true,
+                presentBadge: true,
+                presentSound: true,
+              ),
+            ),
+            payload: message.data.toString(),
+          );
+        }
+      });
+
+      // Handle message open app
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint('A new onMessageOpenedApp event was published!');
+      });
+    } catch (e) {
+      debugPrint('Notification service initialization failed: $e');
+    }
   }
 
   static Future<String?> getToken() async {

@@ -4,8 +4,6 @@ import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/pages/dashboard.dart';
 import 'package:pulchowkx_app/pages/login.dart';
 import 'package:pulchowkx_app/pages/map.dart';
-import 'package:pulchowkx_app/pages/clubs.dart';
-import 'package:pulchowkx_app/pages/events.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 
@@ -139,113 +137,6 @@ class HomePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Feature highlights - responsive
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (constraints.maxWidth < 400) {
-                          // Stack vertically on very small screens
-                          return Column(
-                            children: [
-                              _FeatureChip(
-                                icon: Icons.location_on_rounded,
-                                label: 'Interactive Map',
-                                onTap: () =>
-                                    MainLayout.of(context)?.setSelectedIndex(1),
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              _FeatureChip(
-                                icon: Icons.groups_rounded,
-                                label: 'Campus Clubs',
-                                onTap: () {
-                                  final mainLayout = MainLayout.of(context);
-                                  if (mainLayout != null) {
-                                    mainLayout.setSelectedIndex(5);
-                                  } else {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const ClubsPage(),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              _FeatureChip(
-                                icon: Icons.event_rounded,
-                                label: 'Events',
-                                onTap: () {
-                                  final mainLayout = MainLayout.of(context);
-                                  if (mainLayout != null) {
-                                    mainLayout.setSelectedIndex(6);
-                                  } else {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const EventsPage(),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                            ],
-                          );
-                        }
-                        return Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.sm,
-                          children: [
-                            _FeatureChip(
-                              icon: Icons.location_on_rounded,
-                              label: 'Interactive Map',
-                              onTap: () =>
-                                  MainLayout.of(context)?.setSelectedIndex(1),
-                            ),
-                            _FeatureChip(
-                              icon: Icons.groups_rounded,
-                              label: 'Campus Clubs',
-                              onTap: () {
-                                final mainLayout = MainLayout.of(context);
-                                if (mainLayout != null) {
-                                  mainLayout.setSelectedIndex(5);
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const ClubsPage(),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                            _FeatureChip(
-                              icon: Icons.event_rounded,
-                              label: 'Events',
-                              onTap: () {
-                                final mainLayout = MainLayout.of(context);
-                                if (mainLayout != null) {
-                                  mainLayout.setSelectedIndex(6);
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const EventsPage(),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -315,9 +206,11 @@ class _SecondaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+        ),
         boxShadow: AppShadows.sm,
       ),
       child: Material(
@@ -333,11 +226,11 @@ class _SecondaryButton extends StatelessWidget {
                 Text(
                   label,
                   style: AppTextStyles.button.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
                 const SizedBox(width: 10),
-                Icon(icon, color: AppColors.textPrimary, size: 20),
+                Icon(icon, color: Theme.of(context).iconTheme.color, size: 20),
               ],
             ),
           ),
@@ -364,9 +257,11 @@ class _FeatureChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(AppRadius.full),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(
+              color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -376,7 +271,7 @@ class _FeatureChip extends StatelessWidget {
               Text(
                 label,
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
             ],

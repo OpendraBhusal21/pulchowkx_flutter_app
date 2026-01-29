@@ -285,11 +285,13 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
               Container(
                 decoration: BoxDecoration(
                   color: _showFilters
-                      ? AppColors.primaryLight
-                      : AppColors.surface,
+                      ? AppColors.primary.withValues(alpha: 0.1)
+                      : Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: _showFilters ? AppColors.primary : AppColors.border,
+                    color: _showFilters
+                        ? AppColors.primary
+                        : Theme.of(context).colorScheme.outline,
                   ),
                 ),
                 child: IconButton(
@@ -297,7 +299,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                     Icons.tune,
                     color: _showFilters
                         ? AppColors.primary
-                        : AppColors.textSecondary,
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () => setState(() => _showFilters = !_showFilters),
                 ),
@@ -577,16 +579,22 @@ class _FilterChip extends StatelessWidget {
             vertical: AppSpacing.sm,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryLight : AppColors.surface,
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.1)
+                : Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(AppRadius.full),
             border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.border,
+              color: isSelected
+                  ? AppColors.primary
+                  : Theme.of(context).colorScheme.outline,
             ),
           ),
           child: Text(
             label,
             style: AppTextStyles.labelSmall.copyWith(
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -608,9 +616,9 @@ class _BookCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
           boxShadow: AppShadows.sm,
         ),
         child: Column(

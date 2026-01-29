@@ -83,14 +83,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
       initialDate: isStart ? _startDate : _endDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColors.primary),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -110,14 +102,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: isStart ? _startTime : _endTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColors.primary),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -136,14 +120,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
       initialDate: _registrationDeadline,
       firstDate: DateTime.now().subtract(const Duration(days: 1)),
       lastDate: _startDate,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColors.primary),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -256,7 +232,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Widget build(BuildContext context) {
     if (_success) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -264,13 +240,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: AppColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.check_circle,
                   size: 80,
-                  color: Colors.green.shade600,
+                  color: AppColors.success,
                 ),
               ),
               const SizedBox(height: 24),
@@ -283,7 +259,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
               const SizedBox(height: 8),
               Text(
                 'Redirecting...',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -292,12 +270,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Create Event'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
       ),
       body: Form(
         key: _formKey,
@@ -344,18 +320,20 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade600),
+                    Icon(Icons.error_outline, color: AppColors.error),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade700),
+                        style: TextStyle(color: AppColors.error),
                       ),
                     ),
                   ],
@@ -539,11 +517,9 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-      ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 
@@ -635,14 +611,18 @@ class _CreateEventPageState extends State<CreateEventPage> {
         hintText: hint,
         prefixIcon: Icon(icon, color: AppColors.primary),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).cardTheme.color,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -659,16 +639,21 @@ class _CreateEventPageState extends State<CreateEventPage> {
         labelText: 'Event Type',
         prefixIcon: Icon(Icons.category, color: AppColors.primary),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).cardTheme.color,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
       ),
+      dropdownColor: Theme.of(context).cardTheme.color,
       items: _eventTypes.map((type) {
         return DropdownMenuItem(
           value: type,
@@ -695,9 +680,11 @@ class _CreateEventPageState extends State<CreateEventPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(
+            color: Theme.of(context).dividerTheme.color ?? AppColors.border,
+          ),
         ),
         child: Row(
           children: [
@@ -709,7 +696,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -719,7 +709,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+            Icon(Icons.chevron_right, color: Theme.of(context).disabledColor),
           ],
         ),
       ),

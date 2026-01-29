@@ -16,10 +16,12 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _textController;
+  late AnimationController _progressController;
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<double> _textOpacity;
   late Animation<Offset> _textSlide;
+  late Animation<double> _progressAnimation;
 
   @override
   void initState() {
@@ -38,6 +40,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     _textController = AnimationController(
       duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _progressController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
 
@@ -60,6 +67,10 @@ class _SplashScreenState extends State<SplashScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
 
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.easeInOutSine),
+    );
+
     _startAnimations();
   }
 
@@ -69,8 +80,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     await Future.delayed(const Duration(milliseconds: 400));
     _textController.forward();
+    _progressController.forward();
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 2200));
     _navigateToNextScreen();
   }
 
@@ -96,6 +108,7 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _logoController.dispose();
     _textController.dispose();
+    _progressController.dispose();
     super.dispose();
   }
 
@@ -185,21 +198,70 @@ class _SplashScreenState extends State<SplashScreen>
 
                 const SizedBox(height: 80),
 
-                // Loading indicator
+                // Loading indicator - Styled Progress Bar
                 AnimatedBuilder(
-                  animation: _textController,
+                  animation: _progressController,
                   builder: (context, child) {
+                    final progress = _progressAnimation.value;
+                    final percent = (progress * 100).toInt();
                     return Opacity(
                       opacity: _textOpacity.value,
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.8),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 220,
+                            height: 8,
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 50,
+                                      ),
+                                      width: constraints.maxWidth * progress,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Colors.white,
+                                            Color(0xFFE0E7FF),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            blurRadius: 8,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '$percent%',
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

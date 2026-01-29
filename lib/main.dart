@@ -14,11 +14,30 @@ final themeProvider = ThemeProvider();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await Hive.initFlutter();
-  await Hive.openBox('api_cache');
-  await AnalyticsService.logAppOpen();
-  await NotificationService.initialize();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Failed to initialize Firebase: $e');
+  }
+
+  try {
+    await Hive.initFlutter();
+    await Hive.openBox('api_cache');
+  } catch (e) {
+    debugPrint('Failed to initialize Hive: $e');
+  }
+
+  // Non-blocking analytics
+  AnalyticsService.logAppOpen().catchError((e) {
+    debugPrint('Failed to log app open: $e');
+  });
+
+  // Non-blocking notification init
+  NotificationService.initialize().catchError((e) {
+    debugPrint('Failed to initialize notifications: $e');
+  });
   runApp(const MyApp());
 }
 

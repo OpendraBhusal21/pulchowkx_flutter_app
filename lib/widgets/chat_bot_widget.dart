@@ -326,13 +326,17 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withValues(alpha: 0.95),
-                Colors.white.withValues(alpha: 0.85),
+                Theme.of(context).cardTheme.color?.withValues(alpha: 0.98) ??
+                    Colors.white.withValues(alpha: 0.95),
+                Theme.of(context).cardTheme.color?.withValues(alpha: 0.9) ??
+                    Colors.white.withValues(alpha: 0.85),
               ],
             ),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
               width: 1.5,
             ),
             boxShadow: [
@@ -342,7 +346,9 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                 offset: const Offset(0, 15),
               ),
               BoxShadow(
-                color: const Color(0xFF667EEA).withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
                 blurRadius: 60,
                 offset: const Offset(0, 30),
               ),
@@ -496,12 +502,12 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Hello there! 👋',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
-                color: Color(0xFF1F2937),
+                color: Theme.of(context).colorScheme.onSurface,
                 letterSpacing: -0.3,
               ),
             ),
@@ -510,7 +516,7 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
               'Ask me about buildings, departments,\nor directions around Pulchowk Campus.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -567,8 +573,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
           ),
           child: Text(
             text,
-            style: const TextStyle(
-              color: Color(0xFF667EEA),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -602,7 +608,7 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
               ? null
               : isError
               ? const Color(0xFFFEE2E2)
-              : Colors.white,
+              : Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(20),
             topRight: const Radius.circular(20),
@@ -618,7 +624,9 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
               : Border.all(
                   color: isError
                       ? const Color(0xFFFCA5A5)
-                      : Colors.grey.shade200,
+                      : Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.5),
                 ),
           boxShadow: [
             BoxShadow(
@@ -637,7 +645,7 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                 ? Colors.white
                 : isError
                 ? const Color(0xFFDC2626)
-                : const Color(0xFF374151),
+                : Theme.of(context).colorScheme.onSurface,
             fontSize: 15,
             height: 1.5,
             fontWeight: FontWeight.w400,
@@ -654,14 +662,16 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
             bottomRight: Radius.circular(20),
             bottomLeft: Radius.circular(4),
           ),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -706,7 +716,7 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(28),
           bottomRight: Radius.circular(28),
@@ -761,17 +771,23 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? const Color(0xFFF3F4F6)
+                        : const Color(0xFF374151),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: TextField(
                     controller: _messageController,
                     focusNode: _focusNode,
                     enabled: !_isLoading && _rateLimitCooldown <= 0,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF1F2937),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: _rateLimitCooldown > 0

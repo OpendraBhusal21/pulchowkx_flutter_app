@@ -74,16 +74,23 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.login),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.heroGradientDark
+              : AppColors.heroGradient,
+        ),
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 400),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Theme.of(context).cardTheme.color,
                 borderRadius: BorderRadius.circular(AppRadius.xl),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(
+                  color:
+                      Theme.of(context).dividerTheme.color ?? AppColors.border,
+                ),
                 boxShadow: AppShadows.lg,
               ),
               padding: const EdgeInsets.all(AppSpacing.xl),
@@ -157,9 +164,13 @@ class _LoginPageState extends State<LoginPage> {
                             vertical: 14,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: Theme.of(context).cardTheme.color,
                             borderRadius: BorderRadius.circular(AppRadius.md),
-                            border: Border.all(color: AppColors.border),
+                            border: Border.all(
+                              color:
+                                  Theme.of(context).dividerTheme.color ??
+                                  AppColors.border,
+                            ),
                             boxShadow: AppShadows.sm,
                           ),
                           child: _isLoading
@@ -186,7 +197,9 @@ class _LoginPageState extends State<LoginPage> {
                                     Text(
                                       'Continue with Google',
                                       style: AppTextStyles.button.copyWith(
-                                        color: AppColors.textPrimary,
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge?.color,
                                       ),
                                     ),
                                   ],
