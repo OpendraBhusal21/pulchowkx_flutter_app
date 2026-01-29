@@ -178,27 +178,27 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final totalWidth = MediaQuery.of(context).size.width;
+    final itemWidth = totalWidth / 5;
+
     return Container(
+      height: 65 + bottomPadding,
       decoration: BoxDecoration(
         color: Colors.transparent,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
-            offset: const Offset(0, -5),
+            offset: const Offset(0, -2),
           ),
         ],
       ),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            height: 65 + MediaQuery.of(context).padding.bottom,
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              bottom: MediaQuery.of(context).padding.bottom,
-            ),
+            padding: EdgeInsets.only(bottom: bottomPadding),
             decoration: BoxDecoration(
               color:
                   Theme.of(context).cardTheme.color?.withValues(alpha: 0.85) ??
@@ -207,58 +207,63 @@ class _BottomNavBar extends StatelessWidget {
                 top: BorderSide(
                   color: Theme.of(
                     context,
-                  ).colorScheme.outline.withValues(alpha: 0.5),
+                  ).colorScheme.outline.withValues(alpha: 0.15),
                   width: 1,
                 ),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Stack(
               children: [
-                _NavIcon(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isActive: selectedIndex == 0,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onItemSelected(0);
-                  },
+                // Sliding Indicator Pill
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutBack,
+                  left: selectedIndex * itemWidth + (itemWidth - 48) / 2,
+                  top: 8,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                 ),
-                _NavIcon(
-                  icon: Icons.map_rounded,
-                  label: 'Map',
-                  isActive: selectedIndex == 1,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onItemSelected(1);
-                  },
-                ),
-                _NavIcon(
-                  icon: Icons.school_rounded,
-                  label: 'Class',
-                  isActive: selectedIndex == 2,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onItemSelected(2);
-                  },
-                ),
-                _NavIcon(
-                  icon: Icons.menu_book_rounded,
-                  label: 'Books',
-                  isActive: selectedIndex == 3,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onItemSelected(3);
-                  },
-                ),
-                _NavIcon(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  isActive: selectedIndex == 4,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onItemSelected(4);
-                  },
+                // Icons Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavIcon(
+                      icon: Icons.home_rounded,
+                      label: 'Home',
+                      isActive: selectedIndex == 0,
+                      onTap: () => onItemSelected(0),
+                    ),
+                    _NavIcon(
+                      icon: Icons.map_rounded,
+                      label: 'Map',
+                      isActive: selectedIndex == 1,
+                      onTap: () => onItemSelected(1),
+                    ),
+                    _NavIcon(
+                      icon: Icons.school_rounded,
+                      label: 'Class',
+                      isActive: selectedIndex == 2,
+                      onTap: () => onItemSelected(2),
+                    ),
+                    _NavIcon(
+                      icon: Icons.menu_book_rounded,
+                      label: 'Books',
+                      isActive: selectedIndex == 3,
+                      onTap: () => onItemSelected(3),
+                    ),
+                    _NavIcon(
+                      icon: Icons.person_rounded,
+                      label: 'Profile',
+                      isActive: selectedIndex == 4,
+                      onTap: () => onItemSelected(4),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -285,58 +290,43 @@ class _NavIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
+        width: 60,
         height: 65,
-        width: 56,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  width: isActive ? 40 : 0,
-                  height: isActive ? 40 : 0,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : null,
-                  ),
-                ),
-                Icon(
-                  icon,
-                  color: isActive
-                      ? AppColors.primary
-                      : Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  size: 22,
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            AnimatedScale(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack,
+              scale: isActive ? 1.2 : 1.0,
+              child: Icon(
+                icon,
                 color: isActive
                     ? AppColors.primary
                     : Theme.of(
                         context,
                       ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive
+                    ? AppColors.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                letterSpacing: 0.2,
               ),
               child: Text(label),
             ),

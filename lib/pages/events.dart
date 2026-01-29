@@ -371,13 +371,20 @@ class _EventsPageState extends State<EventsPage> {
           delegate: SliverChildBuilderDelegate(
             (context, index) => AnimationConfiguration.staggeredGrid(
               position: index,
-              duration: const Duration(milliseconds: 375),
+              duration: const Duration(milliseconds: 600),
               columnCount: 1,
-              child: ScaleAnimation(
-                child: FadeInAnimation(
-                  child: EventCard(
-                    event: events[index],
-                    type: EventCardType.grid,
+              child: SlideAnimation(
+                verticalOffset: 50.0,
+                curve: Curves.easeOutQuart,
+                child: ScaleAnimation(
+                  scale: 0.9,
+                  curve: Curves.easeOutQuart,
+                  child: FadeInAnimation(
+                    curve: Curves.easeOutQuart,
+                    child: EventCard(
+                      event: events[index],
+                      type: EventCardType.grid,
+                    ),
                   ),
                 ),
               ),

@@ -200,11 +200,18 @@ class _ClubsPageState extends State<ClubsPage> {
                           (context, index) =>
                               AnimationConfiguration.staggeredGrid(
                                 position: index,
-                                duration: const Duration(milliseconds: 375),
+                                duration: const Duration(milliseconds: 600),
                                 columnCount: 1,
-                                child: ScaleAnimation(
-                                  child: FadeInAnimation(
-                                    child: ClubCard(club: clubs[index]),
+                                child: SlideAnimation(
+                                  verticalOffset: 50.0,
+                                  curve: Curves.easeOutQuart,
+                                  child: ScaleAnimation(
+                                    scale: 0.9,
+                                    curve: Curves.easeOutQuart,
+                                    child: FadeInAnimation(
+                                      curve: Curves.easeOutQuart,
+                                      child: ClubCard(club: clubs[index]),
+                                    ),
                                   ),
                                 ),
                               ),

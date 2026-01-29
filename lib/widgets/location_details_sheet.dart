@@ -78,11 +78,13 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color:
+            Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(25),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -97,7 +99,9 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -128,20 +132,28 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                                 width: double.infinity,
                                 height: double.infinity,
                                 placeholder: (context, url) => Container(
-                                  color: Colors.grey[200],
-                                  child: const Center(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  child: Center(
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.blue,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                   ),
                                 ),
                                 errorWidget: (context, url, error) => Container(
-                                  color: Colors.grey[200],
-                                  child: const Icon(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  child: Icon(
                                     Icons.image_not_supported_outlined,
                                     size: 48,
-                                    color: Colors.grey,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -216,10 +228,8 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 // Title
                 Text(
                   widget.title,
-                  style: const TextStyle(
-                    fontSize: 22,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
                   ),
                 ),
 
@@ -228,9 +238,8 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                   const SizedBox(height: 12),
                   Text(
                     widget.description!,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey[700],
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       height: 1.5,
                     ),
                   ),
@@ -243,12 +252,15 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: widget.onNavigate,
-                      icon: const Icon(Icons.directions_walk),
+                      icon: const Icon(Icons.directions_walk_rounded),
                       label: const Text('Get Directions'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[600],
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

@@ -528,22 +528,29 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
               }
               return AnimationConfiguration.staggeredGrid(
                 position: index,
-                duration: const Duration(milliseconds: 375),
+                duration: const Duration(milliseconds: 600),
                 columnCount: 2,
-                child: ScaleAnimation(
-                  child: FadeInAnimation(
-                    child: _BookCard(
-                      listing: _listings[index],
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                BookDetailsPage(bookId: _listings[index].id),
-                          ),
-                        ).then((_) => _loadListings());
-                      },
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  curve: Curves.easeOutQuart,
+                  child: ScaleAnimation(
+                    scale: 0.9,
+                    curve: Curves.easeOutQuart,
+                    child: FadeInAnimation(
+                      curve: Curves.easeOutQuart,
+                      child: _BookCard(
+                        listing: _listings[index],
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  BookDetailsPage(bookId: _listings[index].id),
+                            ),
+                          ).then((_) => _loadListings());
+                        },
+                      ),
                     ),
                   ),
                 ),
