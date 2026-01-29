@@ -132,6 +132,10 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
     });
     _cooldownTimer?.cancel();
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         _rateLimitCooldown--;
         if (_rateLimitCooldown <= 0) {
@@ -154,6 +158,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
     _scrollToBottom();
 
     final response = await _apiService.chatBot(query);
+
+    if (!mounted) return;
 
     setState(() {
       _isLoading = false;
@@ -214,7 +220,7 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
         if (_isOpen)
           Positioned(
             right: 16,
-            bottom: 90,
+            bottom: 78,
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: ScaleTransition(
@@ -248,8 +254,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                 child: Transform.scale(
                   scale: 1 + (_pulseAnimationController.value * 0.5),
                   child: Container(
-                    width: 64,
-                    height: 64,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
@@ -272,8 +278,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                   scale:
                       1 + (((_pulseAnimationController.value + 0.5) % 1) * 0.8),
                   child: Container(
-                    width: 64,
-                    height: 64,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
@@ -291,8 +297,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                   ? 1.0
                   : 1 + (_pulseAnimationController.value * 0.05),
               child: Container(
-                width: 68,
-                height: 68,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -317,7 +323,7 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: _toggleChat,
-                    borderRadius: BorderRadius.circular(34),
+                    borderRadius: BorderRadius.circular(28),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -326,8 +332,8 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                           RotationTransition(
                             turns: _pulseAnimationController,
                             child: Container(
-                              width: 60,
-                              height: 60,
+                              width: 50,
+                              height: 50,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
@@ -353,13 +359,13 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
                                 ? const Icon(
                                     Icons.close_rounded,
                                     key: ValueKey('close'),
-                                    size: 32,
+                                    size: 26,
                                     color: Colors.white,
                                   )
                                 : const Icon(
                                     Icons.assistant_rounded,
                                     key: ValueKey('open'),
-                                    size: 30,
+                                    size: 24,
                                     color: Colors.white,
                                   ),
                           ),
@@ -377,54 +383,39 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
   }
 
   Widget _buildChatPanel() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          width: 360,
-          height: 520,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).cardTheme.color?.withValues(alpha: 0.98) ??
-                    Colors.white.withValues(alpha: 0.95),
-                Theme.of(context).cardTheme.color?.withValues(alpha: 0.9) ??
-                    Colors.white.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.3),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
-              ),
-              BoxShadow(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
-                blurRadius: 60,
-                offset: const Offset(0, 30),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(child: _buildMessagesList()),
-              _buildInputArea(),
-            ],
-          ),
+    return Container(
+      width: 360,
+      height: 520,
+      decoration: BoxDecoration(
+        color:
+            Theme.of(context).cardTheme.color?.withValues(alpha: 0.98) ??
+            Colors.white.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+          BoxShadow(
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.05),
+            blurRadius: 60,
+            offset: const Offset(0, 30),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildHeader(),
+          Expanded(child: _buildMessagesList()),
+          _buildInputArea(),
+        ],
       ),
     );
   }

@@ -144,9 +144,11 @@ class _MapPageState extends State<MapPage> {
           }
         }
 
-        setState(() {
-          _locations = locations;
-        });
+        if (mounted) {
+          setState(() {
+            _locations = locations;
+          });
+        }
       }
 
       // Always re-add campus mask and markers when style loads
@@ -155,9 +157,10 @@ class _MapPageState extends State<MapPage> {
         debugPrint(
           '🎯 Re-adding campus mask and markers (isSatellite: $_isSatellite)',
         );
+        // Add layers in parallel where possible, but mask must be below markers
         await _addCampusMask();
         // Small delay to ensure mask layer is fully added before adding markers on top
-        await Future.delayed(const Duration(milliseconds: 100));
+        // await Future.delayed(const Duration(milliseconds: 50)); // Reduced delay
         await _addMarkersToMap();
         debugPrint('✅ Finished re-adding markers');
       }
@@ -1461,7 +1464,7 @@ class _MapPageState extends State<MapPage> {
           children: [
             // MapLibre Map
             MapLibreMap(
-              // key: ValueKey(_isSatellite), // Removed to allow smooth style transition without rebuilding view
+              key: const ValueKey('map_libre_main'),
               styleString: _currentStyle,
               initialCameraPosition: const CameraPosition(
                 target: _pulchowkCenter,
@@ -1513,364 +1516,109 @@ class _MapPageState extends State<MapPage> {
               ),
 
             // Search bar
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 16,
-              right: 16,
-              child: TapRegion(
-                onTapOutside: (event) {
-                  if (_searchFocusNode.hasFocus || _showSuggestions) {
-                    _searchFocusNode.unfocus();
-                    setState(() {
-                      _showSuggestions = false;
-                    });
-                  }
-                },
-                child: Column(
-                  children: [
-                    // Search input
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(
-                                  context,
-                                ).cardTheme.color?.withValues(alpha: 0.7) ??
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surface.withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outline.withValues(alpha: 0.1),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                                _showSuggestions = value.isNotEmpty;
-                              });
-                            },
-                            onTap: () {
-                              setState(() {
-                                _showSuggestions = _searchQuery.isNotEmpty;
-                              });
-                            },
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: (value) {
-                              if (value.isEmpty) return;
-
-                              setState(() {
-                                _searchQuery = value;
-                                _showSuggestions = value.isNotEmpty;
-                              });
-
-                              if (_filteredSuggestions.isNotEmpty) {
-                                _flyToLocation(_filteredSuggestions.first);
-                              }
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Search classrooms, departments...',
-                              hintStyle: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.5),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.search_rounded,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              suffixIcon: _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear_rounded),
-                                      onPressed: () {
-                                        HapticFeedback.selectionClick();
-                                        setState(() {
-                                          _searchController.clear();
-                                          _searchQuery = '';
-                                          _showSuggestions = false;
-                                        });
-                                      },
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Suggestions dropdown
-                    if (_showSuggestions && _filteredSuggestions.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: BackdropFilter(
-                            filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).cardTheme.color?.withValues(alpha: 0.5) ??
-                                    Colors.white.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outline.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: _filteredSuggestions.map((location) {
-                                  final iconType = location['icon'] as String;
-                                  final color = _getMarkerColor(iconType);
-                                  return ListTile(
-                                    leading: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: color.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.location_on_rounded,
-                                        size: 18,
-                                        color: color,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      location['title'],
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    subtitle: Text(
-                                      'Pulchowk Campus',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-                                      _flyToLocation(location);
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    // No results message
-                    if (_showSuggestions &&
-                        _searchQuery.isNotEmpty &&
-                        _filteredSuggestions.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: BackdropFilter(
-                            filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                            child: Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).cardTheme.color?.withValues(alpha: 0.5) ??
-                                    Colors.white.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outline.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.search_off_rounded,
-                                    size: 40,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'No locations found',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Try a different search term',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
             // Map/Satellite Toggle
             Positioned(
               bottom: 24,
               left: 16,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(
-                            context,
-                          ).cardTheme.color?.withValues(alpha: 0.5) ??
-                          Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withValues(alpha: 0.1),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildMapTypeButton(
-                          label: 'Map',
-                          isActive: !_isSatellite,
-                          onTap: () {
-                            if (_isSatellite) {
-                              HapticFeedback.selectionClick();
-                              _toggleMapType();
-                            }
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        _buildMapTypeButton(
-                          label: 'Satellite',
-                          isActive: _isSatellite,
-                          onTap: () {
-                            if (!_isSatellite) {
-                              HapticFeedback.selectionClick();
-                              _toggleMapType();
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color:
+                      Theme.of(
+                        context,
+                      ).cardTheme.color?.withValues(alpha: 0.95) ??
+                      Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.15),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildMapTypeButton(
+                      label: 'Map',
+                      isActive: !_isSatellite,
+                      onTap: () {
+                        if (_isSatellite) {
+                          HapticFeedback.selectionClick();
+                          _toggleMapType();
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                    _buildMapTypeButton(
+                      label: 'Satellite',
+                      isActive: _isSatellite,
+                      onTap: () {
+                        if (!_isSatellite) {
+                          HapticFeedback.selectionClick();
+                          _toggleMapType();
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
 
             // Current Location Button
             Positioned(
-              bottom: 104,
+              bottom: 80,
               right: 16,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.mediumImpact();
-                      if (!_isLocating) {
-                        _goToCurrentLocation();
-                      }
-                    },
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color:
-                            Theme.of(
-                              context,
-                            ).cardTheme.color?.withValues(alpha: 0.5) ??
-                            Colors.white.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.1),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: _isLocating
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              )
-                            : Icon(
-                                Icons.my_location_rounded,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                      ),
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  if (!_isLocating) {
+                    _goToCurrentLocation();
+                  }
+                },
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(
+                          context,
+                        ).cardTheme.color?.withValues(alpha: 0.95) ??
+                        Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.15),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: _isLocating
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        : Icon(
+                            Icons.my_location_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                   ),
                 ),
               ),
@@ -1882,244 +1630,496 @@ class _MapPageState extends State<MapPage> {
                 top: MediaQuery.of(context).padding.top + 16,
                 left: 16,
                 right: 16,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color:
-                            Theme.of(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(
+                          context,
+                        ).cardTheme.color?.withValues(alpha: 0.98) ??
+                        Colors.white.withValues(alpha: 0.98),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.12),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 25,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header with back button and collapsible toggle
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              _exitNavigation();
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                            color: Theme.of(context).colorScheme.onSurface,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Close Navigation',
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Directions',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              setState(
+                                () => _isNavigationPanelExpanded =
+                                    !_isNavigationPanelExpanded,
+                              );
+                            },
+                            icon: Icon(
+                              _isNavigationPanelExpanded
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded,
+                            ),
+                            color: Theme.of(
                               context,
-                            ).cardTheme.color?.withValues(alpha: 0.5) ??
-                            Colors.white.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.1),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header with back button and collapsible toggle
-                          Row(
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  HapticFeedback.selectionClick();
-                                  _exitNavigation();
-                                },
-                                icon: const Icon(Icons.arrow_back_rounded),
-                                color: Theme.of(context).colorScheme.onSurface,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Directions',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                onPressed: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(
-                                    () => _isNavigationPanelExpanded =
-                                        !_isNavigationPanelExpanded,
-                                  );
-                                },
-                                icon: Icon(
-                                  _isNavigationPanelExpanded
-                                      ? Icons.keyboard_arrow_up_rounded
-                                      : Icons.keyboard_arrow_down_rounded,
+                      if (_isNavigationPanelExpanded) ...[
+                        const SizedBox(height: 16),
+                        // Start point
+                        Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 3,
                                 ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _startPoint?['name'] ??
+                                    'Getting your location...',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: _startPoint != null
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                            if (_isNavigating)
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 18),
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurfaceVariant,
+                                onPressed: () => _exitNavigation(),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                               ),
-                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Dotted line connector
+                        Padding(
+                          padding: const EdgeInsets.only(left: 5),
+                          child: Column(
+                            children: List.generate(
+                              3,
+                              (i) => Container(
+                                width: 2,
+                                height: 4,
+                                margin: const EdgeInsets.symmetric(vertical: 1),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withValues(alpha: 0.5),
+                              ),
+                            ),
                           ),
-                          if (_isNavigationPanelExpanded) ...[
-                            const SizedBox(height: 16),
-                            // Start point
-                            Row(
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      width: 3,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    _startPoint?['name'] ??
-                                        'Getting your location...',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: _startPoint != null
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurface
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
+                        ),
+                        const SizedBox(height: 8),
 
-                            // Dotted line connector
-                            Padding(
-                              padding: const EdgeInsets.only(left: 5),
-                              child: Column(
-                                children: List.generate(
-                                  3,
-                                  (i) => Container(
-                                    width: 2,
-                                    height: 4,
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 1,
-                                    ),
-                                    color: Theme.of(context).colorScheme.outline
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ),
+                        // End point
+                        Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Theme.of(context).colorScheme.error,
                               ),
                             ),
-                            const SizedBox(height: 8),
-
-                            // End point
-                            Row(
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    _endPoint?['name'] ?? 'Destination',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Route info
-                            if (_routeDistance.isNotEmpty &&
-                                _routeDuration.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.directions_walk_rounded,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '$_routeDuration • $_routeDistance',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                    ),
-                                  ],
-                                ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _endPoint?['name'] ?? 'Destination',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                               ),
-                            ],
+                            ),
+                            if (_isNavigating)
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                onPressed: () => _exitNavigation(),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                          ],
+                        ),
 
-                            // Loading indicator
-                            if (_isCalculatingRoute)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                        // Route info
+                        if (_routeDistance.isNotEmpty &&
+                            _routeDuration.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.directions_walk_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '$_routeDuration • $_routeDistance',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
                                         color: Theme.of(
                                           context,
                                         ).colorScheme.primary,
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Calculating route...',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
                                 ),
-                              ),
-                          ],
+                              ],
+                            ),
+                          ),
                         ],
-                      ),
-                    ),
+
+                        // Loading indicator
+                        if (_isCalculatingRoute)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Calculating route...',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ],
                   ),
                 ),
               ),
 
             // Chatbot Widget Overlay
             ChatBotWidget(onLocationsReturned: _handleChatBotLocations),
+
+            // Search bar (Moved to bottom of stack to appear on top)
+            if (!_isNavigating)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 16,
+                left: 16,
+                right: 16,
+                child: TapRegion(
+                  onTapOutside: (event) {
+                    if (_searchFocusNode.hasFocus || _showSuggestions) {
+                      _searchFocusNode.unfocus();
+                      setState(() {
+                        _showSuggestions = false;
+                      });
+                    }
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Search input
+                      Container(
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(
+                                context,
+                              ).cardTheme.color?.withValues(alpha: 0.95) ??
+                              Theme.of(
+                                context,
+                              ).colorScheme.surface.withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.1),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 15,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                              _showSuggestions = value.isNotEmpty;
+                            });
+                          },
+                          onTap: () {
+                            setState(() {
+                              _showSuggestions = _searchQuery.isNotEmpty;
+                            });
+                          },
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) {
+                            if (value.isEmpty) return;
+
+                            setState(() {
+                              _searchQuery = value;
+                              _showSuggestions = value.isNotEmpty;
+                            });
+
+                            if (_filteredSuggestions.isNotEmpty) {
+                              _flyToLocation(_filteredSuggestions.first);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search classrooms, departments...',
+                            hintStyle: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded),
+                                    onPressed: () {
+                                      HapticFeedback.selectionClick();
+                                      setState(() {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                        _showSuggestions = false;
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Suggestions dropdown
+                      if (_showSuggestions && _filteredSuggestions.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).cardTheme.color?.withValues(alpha: 0.98) ??
+                                  Colors.white.withValues(alpha: 0.98),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withValues(alpha: 0.12),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight:
+                                    MediaQuery.of(context).size.height * 0.4,
+                              ),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: _filteredSuggestions.map((
+                                    location,
+                                  ) {
+                                    final iconType = location['icon'] as String;
+                                    final color = _getMarkerColor(iconType);
+                                    return ListTile(
+                                      leading: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: color.withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.location_on_rounded,
+                                          size: 18,
+                                          color: color,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        location['title'],
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      subtitle: Text(
+                                        'Pulchowk Campus',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        _flyToLocation(location);
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // No results message
+                      if (_showSuggestions &&
+                          _searchQuery.isNotEmpty &&
+                          _filteredSuggestions.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).cardTheme.color?.withValues(alpha: 0.98) ??
+                                  Colors.white.withValues(alpha: 0.98),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withValues(alpha: 0.12),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.search_off_rounded,
+                                  size: 40,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'No locations found',
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Try a different search term',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),

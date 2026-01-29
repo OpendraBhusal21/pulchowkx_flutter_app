@@ -6,6 +6,7 @@ import 'package:pulchowkx_app/pages/sell_book.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/pages/marketplace/book_requests_page.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class MyBooksPage extends StatefulWidget {
   const MyBooksPage({super.key});
@@ -157,8 +158,10 @@ class _MyBooksPageState extends State<MyBooksPage>
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+          ? ListView.builder(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              itemCount: 5,
+              itemBuilder: (context, index) => const BookListTileShimmer(),
             )
           : TabBarView(
               controller: _tabController,

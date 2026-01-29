@@ -4,6 +4,7 @@ import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/pages/book_details.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
+import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 
 class BookRequestsPage extends StatefulWidget {
   const BookRequestsPage({super.key});
@@ -126,7 +127,11 @@ class _BookRequestsPageState extends State<BookRequestsPage>
         ),
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  itemCount: 3,
+                  itemBuilder: (context, index) => const RequestCardShimmer(),
+                )
               : TabBarView(
                   controller: _tabController,
                   children: [_buildSentList(), _buildReceivedList()],

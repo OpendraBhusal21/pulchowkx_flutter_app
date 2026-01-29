@@ -10,9 +10,15 @@ class ShimmerLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Shimmer.fromColors(
-      baseColor: AppColors.primary.withValues(alpha: 0.08),
-      highlightColor: AppColors.accent.withValues(alpha: 0.15),
+      baseColor: isDark
+          ? const Color(0xFF334155) // Lighter than card background (0xFF1E293B)
+          : AppColors.primary.withValues(alpha: 0.1),
+      highlightColor: isDark
+          ? const Color(0xFF475569) // Even lighter for the shimmer effect
+          : AppColors.accent.withValues(alpha: 0.15),
       period: const Duration(milliseconds: 1200),
       child: child,
     );
@@ -26,13 +32,21 @@ class EventCardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
     if (type == EventCardType.grid) {
-      return ShimmerLoader(
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
+      return Container(
+        decoration: BoxDecoration(
+          color: cardBackground,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.border,
           ),
+        ),
+        child: ShimmerLoader(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -54,13 +68,13 @@ class EventCardShimmer extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(height: 16, width: 140, color: Colors.white),
+                      Container(height: 14, width: 140, color: Colors.white),
                       const Spacer(),
-                      Container(height: 12, width: 100, color: Colors.white),
+                      Container(height: 10, width: 100, color: Colors.white),
                       const SizedBox(height: 4),
-                      Container(height: 12, width: 80, color: Colors.white),
+                      Container(height: 10, width: 80, color: Colors.white),
                       const SizedBox(height: 8),
-                      Container(height: 12, width: 120, color: Colors.white),
+                      Container(height: 10, width: 120, color: Colors.white),
                     ],
                   ),
                 ),
@@ -70,14 +84,17 @@ class EventCardShimmer extends StatelessWidget {
         ),
       );
     } else {
-      return ShimmerLoader(
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: cardBackground,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.border,
           ),
+        ),
+        child: ShimmerLoader(
           child: Row(
             children: [
               Container(
@@ -118,17 +135,25 @@ class ClubCardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShimmerLoader(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
         ),
+      ),
+      child: ShimmerLoader(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              flex: 3,
+              flex: 4,
               child: Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
@@ -139,27 +164,28 @@ class ClubCardShimmer extends StatelessWidget {
               ),
             ),
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(height: 18, width: 120, color: Colors.white),
-                    const SizedBox(height: 8),
+                    Container(height: 12, width: 100, color: Colors.white),
+                    const SizedBox(height: 6),
                     Container(
-                      height: 12,
+                      height: 8,
                       width: double.infinity,
                       color: Colors.white,
                     ),
                     const SizedBox(height: 4),
-                    Container(height: 12, width: 180, color: Colors.white),
+                    Container(height: 8, width: 140, color: Colors.white),
                     const Spacer(),
                     Row(
                       children: [
-                        Container(height: 12, width: 60, color: Colors.white),
-                        const SizedBox(width: 12),
-                        Container(height: 12, width: 60, color: Colors.white),
+                        Container(height: 8, width: 40, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Container(height: 8, width: 40, color: Colors.white),
                       ],
                     ),
                   ],
@@ -178,12 +204,20 @@ class BookCardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShimmerLoader(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
         ),
+      ),
+      child: ShimmerLoader(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -205,20 +239,20 @@ class BookCardShimmer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      height: 14,
+                      height: 12,
                       width: double.infinity,
                       color: Colors.white,
                     ),
                     const SizedBox(height: 4),
-                    Container(height: 14, width: 80, color: Colors.white),
+                    Container(height: 12, width: 80, color: Colors.white),
                     const SizedBox(height: 6),
                     Container(height: 10, width: 60, color: Colors.white),
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(height: 14, width: 50, color: Colors.white),
-                        Container(height: 14, width: 40, color: Colors.white),
+                        Container(height: 12, width: 50, color: Colors.white),
+                        Container(height: 12, width: 40, color: Colors.white),
                       ],
                     ),
                   ],
@@ -237,13 +271,18 @@ class DashboardHeaderShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShimmerLoader(
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: ShimmerLoader(
         child: Row(
           children: [
             Container(
@@ -255,12 +294,10 @@ class DashboardHeaderShimmer extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Removed text shimmers
-                ],
+                children: [],
               ),
             ),
           ],
@@ -275,11 +312,14 @@ class QuickActionShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color maskColor = isDark ? Colors.grey[800]! : Colors.white;
+
     return ShimmerLoader(
       child: Container(
         height: 150,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: maskColor,
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
       ),
@@ -307,9 +347,11 @@ class ClassroomShimmer extends StatelessWidget {
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.school_rounded,
-                  color: Colors.white,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[800]
+                      : Colors.white,
                   size: 20,
                 ),
               ),
@@ -391,15 +433,22 @@ class CardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShimmerLoader(
-      child: Container(
-        height: 120,
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
+    return Container(
+      height: 120,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
         ),
       ),
+      child: ShimmerLoader(child: Container(color: Colors.white)),
     );
   }
 }
@@ -458,7 +507,11 @@ class DetailsPageShimmer extends StatelessWidget {
           ShimmerLoader(
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: Container(color: Colors.white),
+              child: Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[800]
+                    : Colors.white,
+              ),
             ),
           ),
           Padding(
@@ -478,7 +531,13 @@ class DetailsPageShimmer extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xl),
                 // Heading
                 ShimmerLoader(
-                  child: Container(height: 24, width: 200, color: Colors.white),
+                  child: Container(
+                    height: 24,
+                    width: 200,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.white,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 // Content Block
@@ -486,7 +545,9 @@ class DetailsPageShimmer extends StatelessWidget {
                   child: Container(
                     height: 150,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[800]
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                   ),
@@ -518,13 +579,138 @@ class BoxShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color maskColor = isDark ? Colors.grey[800]! : Colors.white;
+
     return ShimmerLoader(
       child: Container(
         height: height,
         width: width ?? double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: maskColor,
           borderRadius: BorderRadius.circular(borderRadius),
+        ),
+      ),
+    );
+  }
+}
+
+class BookListTileShimmer extends StatelessWidget {
+  const BookListTileShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+        ),
+      ),
+      child: ShimmerLoader(
+        child: Row(
+          children: [
+            Container(
+              width: 80,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 14, width: 150, color: Colors.white),
+                  const SizedBox(height: 8),
+                  Container(height: 12, width: 100, color: Colors.white),
+                  const SizedBox(height: 12),
+                  Container(height: 14, width: 60, color: Colors.white),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RequestCardShimmer extends StatelessWidget {
+  const RequestCardShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBackground = isDark
+        ? AppColors.cardBackgroundDark
+        : Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.border,
+        ),
+      ),
+      child: ShimmerLoader(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(height: 12, width: 120, color: Colors.white),
+                      const SizedBox(height: 4),
+                      Container(height: 10, width: 80, color: Colors.white),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 60,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              height: 30,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+            ),
+          ],
         ),
       ),
     );
