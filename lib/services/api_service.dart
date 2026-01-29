@@ -1015,12 +1015,15 @@ class ApiService {
   }
 
   /// Generic upload for event banners
-  Future<Map<String, dynamic>> uploadEventBanner(File imageFile) async {
+  Future<Map<String, dynamic>> uploadEventBanner(
+    int eventId,
+    File imageFile,
+  ) async {
     try {
       final userId = await getDatabaseUserId();
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$apiBaseUrl/events/upload-banner'),
+        Uri.parse('$apiBaseUrl/events/$eventId/upload-banner'),
       );
 
       if (userId != null) {

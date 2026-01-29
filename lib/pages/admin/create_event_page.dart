@@ -181,15 +181,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     try {
       String? bannerUrl = _bannerUrlController.text.trim();
 
-      // Upload image first if picked
-      if (_imageFile != null) {
-        final uploadResult = await _apiService.uploadEventBanner(_imageFile!);
-        if (uploadResult['success'] == true) {
-          bannerUrl = uploadResult['url'];
-        } else {
-          throw Exception(uploadResult['message'] ?? 'Image upload failed');
-        }
-      }
+      // Create event first (without banner if it's a file upload)
       final result = await _apiService.createEvent(
         authId: dbUserId,
         clubId: widget.clubId,
@@ -206,10 +198,25 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
         eventStartTime: _formatDateTime(_startDate, _startTime),
         eventEndTime: _formatDateTime(_endDate, _endTime),
-        bannerUrl: bannerUrl?.isNotEmpty == true ? bannerUrl : null,
+        bannerUrl: bannerUrl.isNotEmpty == true ? bannerUrl : null,
       );
 
       if (result['success'] == true) {
+        final createdEvent = result['event'];
+        final eventId = createdEvent?['id'];
+
+        // Upload image if picked and event creation was successful
+        if (_imageFile != null && eventId != null) {
+          final uploadResult = await _apiService.uploadEventBanner(
+            eventId is int ? eventId : int.parse(eventId.toString()),
+            _imageFile!,
+          );
+          if (uploadResult['success'] != true) {
+            // Log or show optional warning, but event is already created
+            debugPrint('Image upload failed: ${uploadResult['message']}');
+          }
+        }
+
         setState(() => _success = true);
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
@@ -233,6 +240,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Widget build(BuildContext context) {
     if (_success) {
       return Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Center(
           child: Column(
