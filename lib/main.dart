@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pulchowkx_app/pages/splash_screen.dart';
+import 'package:pulchowkx_app/pages/main_layout.dart';
+import 'package:pulchowkx_app/pages/onboarding_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/services/theme_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -14,6 +16,8 @@ final themeProvider = ThemeProvider();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -56,7 +60,24 @@ class MyApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
           navigatorObservers: [AnalyticsService.observer],
-          home: const SplashScreen(),
+          home: FutureBuilder<bool>(
+            future: SharedPreferences.getInstance().then(
+              (prefs) => prefs.getBool('has_seen_onboarding') ?? false,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  backgroundColor: Color(0xFFB088F9),
+                  body: Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                );
+              }
+              return snapshot.data == true
+                  ? const MainLayout()
+                  : const OnboardingPage();
+            },
+          ),
         );
       },
     );

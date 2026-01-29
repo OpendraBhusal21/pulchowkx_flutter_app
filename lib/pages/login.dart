@@ -117,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     "Welcome Back!",
                     style: AppTextStyles.h3.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).textTheme.displaySmall?.color,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -125,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
                     "Sign in to access your dashboard and manage your campus experience",
                     textAlign: TextAlign.center,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
@@ -141,7 +141,9 @@ class _LoginPageState extends State<LoginPage> {
                         child: Text(
                           'Continue with',
                           style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textMuted,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.color,
                           ),
                         ),
                       ),
@@ -215,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                     'By signing in, you agree to our Terms of Service and Privacy Policy',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textMuted,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
