@@ -131,19 +131,68 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                                 height: double.infinity,
-                                placeholder: (context, url) => Container(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                progressIndicatorBuilder:
+                                    (
+                                      context,
+                                      url,
+                                      downloadProgress,
+                                    ) => Container(
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.primary,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: 120,
+                                              height: 4,
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(2),
+                                                child: LinearProgressIndicator(
+                                                  value:
+                                                      downloadProgress.progress,
+                                                  backgroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                          .withValues(
+                                                            alpha: 0.1,
+                                                          ),
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                            if (downloadProgress.progress !=
+                                                null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                '${(downloadProgress.progress! * 100).toInt()}%',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
                                 errorWidget: (context, url, error) => Container(
                                   color: Theme.of(
                                     context,

@@ -55,7 +55,6 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _fabRotationAnimation;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -89,13 +88,6 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
 
     _fabRotationAnimation = Tween<double>(begin: 0, end: 0.5).animate(
       CurvedAnimation(parent: _fabAnimationController, curve: Curves.easeInOut),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(
-        parent: _pulseAnimationController,
-        curve: Curves.easeInOut,
-      ),
     );
   }
 
@@ -241,75 +233,146 @@ class _ChatBotWidgetState extends State<ChatBotWidget>
 
   Widget _buildFab() {
     return AnimatedBuilder(
-      animation: _pulseAnimation,
+      animation: Listenable.merge([
+        _pulseAnimationController,
+        _fabAnimationController,
+      ]),
       builder: (context, child) {
-        return Transform.scale(
-          scale: _isOpen ? 1.0 : _pulseAnimation.value,
-          child: child,
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF667EEA).withValues(alpha: 0.5),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: const Color(0xFF764BA2).withValues(alpha: 0.3),
-              blurRadius: 40,
-              offset: const Offset(0, 16),
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Ripple 1
+            if (!_isOpen)
+              Opacity(
+                opacity: (1 - _pulseAnimationController.value) * 0.5,
+                child: Transform.scale(
+                  scale: 1 + (_pulseAnimationController.value * 0.5),
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF667EEA).withValues(alpha: 0.5),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // Ripple 2
+            if (!_isOpen)
+              Opacity(
+                opacity:
+                    (1 -
+                        (_pulseAnimationController.value + 0.5).clamp(0, 1.5) %
+                            1) *
+                    0.3,
+                child: Transform.scale(
+                  scale:
+                      1 + (((_pulseAnimationController.value + 0.5) % 1) * 0.8),
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF764BA2).withValues(alpha: 0.5),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Main Button Container
+            Transform.scale(
+              scale: _isOpen
+                  ? 1.0
+                  : 1 + (_pulseAnimationController.value * 0.05),
+              child: Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF667EEA).withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF764BA2).withValues(alpha: 0.3),
+                      blurRadius: 40,
+                      offset: const Offset(0, 16),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _toggleChat,
+                    borderRadius: BorderRadius.circular(34),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Animated Border
+                        if (!_isOpen)
+                          RotationTransition(
+                            turns: _pulseAnimationController,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Icon
+                        RotationTransition(
+                          turns: _fabRotationAnimation,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              );
+                            },
+                            child: _isOpen
+                                ? const Icon(
+                                    Icons.close_rounded,
+                                    key: ValueKey('close'),
+                                    size: 32,
+                                    color: Colors.white,
+                                  )
+                                : const Icon(
+                                    Icons.assistant_rounded,
+                                    key: ValueKey('open'),
+                                    size: 30,
+                                    color: Colors.white,
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _toggleChat,
-            borderRadius: BorderRadius.circular(32),
-            child: Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: RotationTransition(
-                turns: _fabRotationAnimation,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) {
-                    return ScaleTransition(scale: animation, child: child);
-                  },
-                  child: _isOpen
-                      ? const Icon(
-                          Icons.close_rounded,
-                          key: ValueKey('close'),
-                          size: 28,
-                          color: Colors.white,
-                        )
-                      : const Icon(
-                          Icons.chat_outlined,
-                          key: ValueKey('open'),
-                          size: 26,
-                          color: Colors.white,
-                        ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
