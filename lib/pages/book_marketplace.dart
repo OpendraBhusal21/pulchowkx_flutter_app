@@ -361,6 +361,34 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
                     },
                   ),
                 ),
+                if (_categories.isNotEmpty) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  Container(
+                    width: 1,
+                    height: 20,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.borderDark
+                        : AppColors.border,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  ..._categories
+                      .take(5)
+                      .map(
+                        (category) => _FilterChip(
+                          label: category.name,
+                          isSelected: _selectedCategory?.id == category.id,
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory =
+                                  _selectedCategory?.id == category.id
+                                  ? null
+                                  : category;
+                            });
+                            _applyFilters();
+                          },
+                        ),
+                      ),
+                ],
               ],
             ),
           ),

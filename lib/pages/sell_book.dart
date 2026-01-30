@@ -258,13 +258,17 @@ class _SellBookPageState extends State<SellBookPage> {
                       controller: _titleController,
                       label: 'Book Title *',
                       hint: 'Enter the book title',
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                      validator: (v) => v?.trim().isEmpty == true
+                          ? 'Title is required'
+                          : null,
                     ),
                     _buildTextField(
                       controller: _authorController,
                       label: 'Author *',
                       hint: 'Enter author name',
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                      validator: (v) => v?.trim().isEmpty == true
+                          ? 'Author is required'
+                          : null,
                     ),
                     _buildTextField(
                       controller: _priceController,
@@ -272,8 +276,12 @@ class _SellBookPageState extends State<SellBookPage> {
                       hint: 'Enter price',
                       keyboardType: TextInputType.number,
                       validator: (v) {
-                        if (v?.isEmpty == true) return 'Required';
-                        if (double.tryParse(v!) == null) return 'Invalid price';
+                        if (v?.trim().isEmpty == true)
+                          return 'Price is required';
+                        if (double.tryParse(v!.trim()) == null)
+                          return 'Please enter a valid price';
+                        if (double.parse(v.trim()) <= 0)
+                          return 'Price must be greater than zero';
                         return null;
                       },
                     ),
@@ -372,22 +380,24 @@ class _SellBookPageState extends State<SellBookPage> {
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
-                          child: DropdownButton<BookCategory?>(
+                          child: DropdownButtonFormField<BookCategory?>(
                             value: _selectedCategory,
                             isExpanded: true,
-                            hint: const Text('Select category'),
-                            items: [
-                              const DropdownMenuItem<BookCategory?>(
-                                value: null,
-                                child: Text('No category'),
-                              ),
-                              ..._categories.map(
-                                (cat) => DropdownMenuItem(
-                                  value: cat,
-                                  child: Text(cat.name),
-                                ),
-                              ),
-                            ],
+                            hint: const Text('Select a category'),
+                            validator: (v) =>
+                                v == null ? 'Category is required' : null,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            items: _categories
+                                .map(
+                                  (cat) => DropdownMenuItem(
+                                    value: cat,
+                                    child: Text(cat.name),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (value) =>
                                 setState(() => _selectedCategory = value),
                           ),

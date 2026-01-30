@@ -28,7 +28,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 500),
     );
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {

@@ -10,6 +10,7 @@ import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/pages/events.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pulchowkx_app/pages/login.dart';
+import 'package:pulchowkx_app/main.dart' show themeProvider;
 
 class MainLayout extends StatefulWidget {
   final int initialIndex;
@@ -283,7 +284,7 @@ class _NavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        HapticFeedback.selectionClick();
+        themeProvider.selectionClick();
         onTap();
       },
       behavior: HitTestBehavior.opaque,
