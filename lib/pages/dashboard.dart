@@ -12,6 +12,7 @@ import 'package:pulchowkx_app/pages/favorites_page.dart';
 import 'package:pulchowkx_app/pages/admin/create_club_page.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
+import 'package:pulchowkx_app/models/event.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -354,6 +355,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
               const SizedBox(height: AppSpacing.xl),
 
+              // Next Up Section
+              _buildNextUpSection(),
+
+              const SizedBox(height: AppSpacing.xl),
+
               _isLoading
                   ? GridView.count(
                       shrinkWrap: true,
@@ -491,6 +497,161 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
+  Widget _buildNextUpSection() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder<String?>(
+      future: _apiService.getDatabaseUserId(),
+      builder: (context, idSnapshot) {
+        final userId = idSnapshot.data ?? user.uid;
+
+        return FutureBuilder<List<EventRegistration>>(
+          future: _apiService.getEnrollments(userId),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            final now = DateTime.now();
+            // Filter for upcoming events and sort by start time
+            final upcoming = snapshot.data!
+                .where(
+                  (reg) =>
+                      reg.status == 'registered' &&
+                      reg.event != null &&
+                      reg.event!.eventStartTime.isAfter(now),
+                )
+                .toList();
+
+            if (upcoming.isEmpty) return const SizedBox.shrink();
+
+            upcoming.sort(
+              (a, b) =>
+                  a.event!.eventStartTime.compareTo(b.event!.eventStartTime),
+            );
+
+            final nextEvent = upcoming.first.event!;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader('Up Next'),
+                const SizedBox(height: AppSpacing.md),
+                _NextUpCard(event: nextEvent),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+}
+
+class _NextUpCard extends StatelessWidget {
+  final ClubEvent event;
+
+  const _NextUpCard({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final timeLeft = event.eventStartTime.difference(DateTime.now());
+
+    String timeText;
+    if (timeLeft.inDays > 0) {
+      timeText = 'In ${timeLeft.inDays} days';
+    } else if (timeLeft.inHours > 0) {
+      timeText = 'In ${timeLeft.inHours} hours';
+    } else {
+      timeText = 'In ${timeLeft.inMinutes} minutes';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.colored(AppColors.primary),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(
+              Icons.timer_outlined,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: AppTextStyles.labelLarge.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  timeText,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
+            child: Text(
+              'Details',
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SignOutButton extends StatelessWidget {
@@ -501,7 +662,6 @@ class _SignOutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Use darker red for light mode to ensure visibility on light background
     final color = isDark ? const Color(0xFFEF9A9A) : const Color(0xFFD32F2F);
 
     return Container(

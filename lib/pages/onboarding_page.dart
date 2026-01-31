@@ -88,125 +88,177 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _slides[_currentPage].gradient,
+      body: Stack(
+        children: [
+          // Background Gradient
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 600),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: _slides[_currentPage].gradient,
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Skip button
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextButton(
-                    onPressed: _skipOnboarding,
-                    child: Text(
-                      'Skip',
-                      style: AppTextStyles.button.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
+
+          // Animated Background Shapes
+          ...List.generate(3, (index) {
+            return AnimatedPositioned(
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeInOutSine,
+              top: _currentPage.isEven
+                  ? (index * 100).toDouble()
+                  : (index * 150).toDouble(),
+              left: _currentPage.isEven
+                  ? (index * 50).toDouble()
+                  : (index * 80).toDouble(),
+              child: Opacity(
+                opacity: 0.1,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          }),
+
+          SafeArea(
+            child: Column(
+              children: [
+                // Skip button
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextButton(
+                      onPressed: _skipOnboarding,
+                      child: Text(
+                        'Skip',
+                        style: AppTextStyles.button.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              // Page content
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _currentPage = index);
-                  },
-                  itemCount: _slides.length,
-                  itemBuilder: (context, index) {
-                    return _buildSlide(_slides[index]);
-                  },
+                // Page content
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _currentPage = index);
+                    },
+                    itemCount: _slides.length,
+                    itemBuilder: (context, index) {
+                      return AnimatedBuilder(
+                        animation: _pageController,
+                        builder: (context, child) {
+                          double value = 1.0;
+                          if (_pageController.position.hasContentDimensions) {
+                            value = _pageController.page! - index;
+                            value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
+                          }
+                          return Center(
+                            child: Transform.scale(
+                              scale: value,
+                              child: Opacity(
+                                opacity: value,
+                                child: _buildSlide(_slides[index]),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
 
-              // Page indicators and next button
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Page indicators
-                    Row(
-                      children: List.generate(
-                        _slides.length,
-                        (index) => AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.only(right: 8),
-                          width: _currentPage == index ? 24 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: _currentPage == index
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(4),
+                // Page indicators and next button
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Page indicators
+                      Row(
+                        children: List.generate(
+                          _slides.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.only(right: 8),
+                            width: _currentPage == index ? 24 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    // Next/Get Started button
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        _nextPage();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _currentPage == _slides.length - 1
-                                  ? 'Get Started'
-                                  : 'Next',
-                              style: AppTextStyles.button.copyWith(
-                                color: _slides[_currentPage].gradient[0],
+                      // Next/Get Started button
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _nextPage();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              _currentPage == _slides.length - 1
-                                  ? Icons.check_rounded
-                                  : Icons.arrow_forward_rounded,
-                              color: _slides[_currentPage].gradient[0],
-                              size: 20,
-                            ),
-                          ],
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _currentPage == _slides.length - 1
+                                    ? 'Get Started'
+                                    : 'Next',
+                                style: AppTextStyles.button.copyWith(
+                                  color: _slides[_currentPage].gradient[0],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                _currentPage == _slides.length - 1
+                                    ? Icons.check_rounded
+                                    : Icons.arrow_forward_rounded,
+                                color: _slides[_currentPage].gradient[0],
+                                size: 20,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -217,21 +269,38 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon container
+          // Icon container with shadow and glow
           Container(
-            width: 140,
-            height: 140,
+            width: 180,
+            height: 180,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 2,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(slide.icon, size: 70, color: Colors.white),
               ),
             ),
-            child: Icon(slide.icon, size: 70, color: Colors.white),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 60),
 
           // Title
           Text(
@@ -239,11 +308,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
             textAlign: TextAlign.center,
             style: AppTextStyles.h2.copyWith(
               color: Colors.white,
-              fontSize: 28,
-              letterSpacing: -0.5,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Description
           Text(
@@ -251,7 +321,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyLarge.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
-              height: 1.6,
+              fontSize: 18,
+              height: 1.5,
             ),
           ),
         ],

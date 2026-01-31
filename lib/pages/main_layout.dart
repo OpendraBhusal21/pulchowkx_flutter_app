@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pulchowkx_app/pages/book_marketplace.dart';
@@ -194,73 +195,79 @@ class _BottomNavBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Container(
-        padding: EdgeInsets.only(bottom: bottomPadding),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color ?? AppColors.surface,
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Sliding Indicator Pill
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutBack,
-              left: selectedIndex * itemWidth + (itemWidth - 48) / 2,
-              top: 8,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: EdgeInsets.only(bottom: bottomPadding),
+            decoration: BoxDecoration(
+              color: (Theme.of(context).cardTheme.color ?? AppColors.surface)
+                  .withValues(alpha: 0.7),
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.1),
+                  width: 0.5,
                 ),
               ),
             ),
-            // Icons Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Stack(
               children: [
-                _NavIcon(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isActive: selectedIndex == 0,
-                  onTap: () => onItemSelected(0),
+                // Sliding Indicator Pill
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutBack,
+                  left: selectedIndex * itemWidth + (itemWidth - 48) / 2,
+                  top: 8,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                 ),
-                _NavIcon(
-                  icon: Icons.map_rounded,
-                  label: 'Map',
-                  isActive: selectedIndex == 1,
-                  onTap: () => onItemSelected(1),
-                ),
-                _NavIcon(
-                  icon: Icons.school_rounded,
-                  label: 'Class',
-                  isActive: selectedIndex == 2,
-                  onTap: () => onItemSelected(2),
-                ),
-                _NavIcon(
-                  icon: Icons.menu_book_rounded,
-                  label: 'Books',
-                  isActive: selectedIndex == 3,
-                  onTap: () => onItemSelected(3),
-                ),
-                _NavIcon(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  isActive: selectedIndex == 4,
-                  onTap: () => onItemSelected(4),
+                // Icons Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavIcon(
+                      icon: Icons.home_rounded,
+                      label: 'Home',
+                      isActive: selectedIndex == 0,
+                      onTap: () => onItemSelected(0),
+                    ),
+                    _NavIcon(
+                      icon: Icons.map_rounded,
+                      label: 'Map',
+                      isActive: selectedIndex == 1,
+                      onTap: () => onItemSelected(1),
+                    ),
+                    _NavIcon(
+                      icon: Icons.school_rounded,
+                      label: 'Class',
+                      isActive: selectedIndex == 2,
+                      onTap: () => onItemSelected(2),
+                    ),
+                    _NavIcon(
+                      icon: Icons.menu_book_rounded,
+                      label: 'Books',
+                      isActive: selectedIndex == 3,
+                      onTap: () => onItemSelected(3),
+                    ),
+                    _NavIcon(
+                      icon: Icons.person_rounded,
+                      label: 'Profile',
+                      isActive: selectedIndex == 4,
+                      onTap: () => onItemSelected(4),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

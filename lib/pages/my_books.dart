@@ -211,6 +211,15 @@ class _MyBooksPageState extends State<MyBooksPage>
             listing: _myListings[index],
             onDelete: () => _deleteListing(_myListings[index]),
             onMarkSold: () => _markAsSold(_myListings[index]),
+            onEdit: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      SellBookPage(existingBook: _myListings[index]),
+                ),
+              ).then((_) => _loadData());
+            },
             onTap: () {
               Navigator.push(
                 context,
@@ -288,12 +297,14 @@ class _MyListingCard extends StatelessWidget {
   final BookListing listing;
   final VoidCallback onDelete;
   final VoidCallback onMarkSold;
+  final VoidCallback onEdit;
   final VoidCallback onTap;
 
   const _MyListingCard({
     required this.listing,
     required this.onDelete,
     required this.onMarkSold,
+    required this.onEdit,
     required this.onTap,
   });
 
@@ -385,6 +396,15 @@ class _MyListingCard extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
+                          if (listing.isAvailable)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit_note_rounded,
+                                color: AppColors.primary,
+                              ),
+                              onPressed: onEdit,
+                              tooltip: 'Edit Listing',
+                            ),
                           if (listing.isAvailable)
                             IconButton(
                               icon: const Icon(

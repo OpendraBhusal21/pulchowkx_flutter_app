@@ -22,13 +22,14 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
   final GlobalKey _boundaryKey = GlobalKey();
   late AnimationController _animationController;
   Offset _tapOffset = Offset.zero;
+  bool _isExpanding = true;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
     );
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -66,9 +67,14 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
             .devicePixelRatio,
       );
 
+      final bool isCurrentlyDark =
+          Theme.of(_boundaryKey.currentContext!).brightness == Brightness.dark;
+
       setState(() {
         _image = image;
         _tapOffset = offset;
+        _isExpanding =
+            !isCurrentlyDark; // If currently light, we expand (to dark). If currently dark, we shrink (to light).
       });
 
       // 2. Change theme
@@ -101,6 +107,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
                       image: _image!,
                       fraction: _animationController.value,
                       center: _tapOffset,
+                      isExpanding: _isExpanding,
                     ),
                     size: Size.infinite,
                   );
@@ -117,27 +124,32 @@ class _CircularRevealPainter extends CustomPainter {
   final ui.Image image;
   final double fraction;
   final Offset center;
+  final bool isExpanding;
 
   _CircularRevealPainter({
     required this.image,
     required this.fraction,
     required this.center,
+    required this.isExpanding,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     // Calculate the maximum radius needed to cover the entire screen
     final double maxRadius = _calcMaxRadius(size, center);
-    final double radius = maxRadius * (1 - fraction);
 
-    if (radius > 0) {
+    if (isExpanding) {
+      // Light -> Dark: The dark theme (current state) expands,
+      // so we draw the OLD image (light) and clip a hole in it.
+      final double radius = maxRadius * fraction;
+
       canvas.save();
-      // Clip a circle that gets smaller
       final Path path = Path()
-        ..addOval(Rect.fromCircle(center: center, radius: radius));
+        ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+        ..addOval(Rect.fromCircle(center: center, radius: radius))
+        ..fillType = PathFillType.evenOdd;
       canvas.clipPath(path);
 
-      // Draw the old image
       paintImage(
         canvas: canvas,
         rect: Rect.fromLTWH(0, 0, size.width, size.height),
@@ -145,6 +157,24 @@ class _CircularRevealPainter extends CustomPainter {
         fit: BoxFit.fill,
       );
       canvas.restore();
+    } else {
+      // Dark -> Light: The dark theme (old image) shrinks to the center.
+      final double radius = maxRadius * (1 - fraction);
+
+      if (radius > 0) {
+        canvas.save();
+        final Path path = Path()
+          ..addOval(Rect.fromCircle(center: center, radius: radius));
+        canvas.clipPath(path);
+
+        paintImage(
+          canvas: canvas,
+          rect: Rect.fromLTWH(0, 0, size.width, size.height),
+          image: image,
+          fit: BoxFit.fill,
+        );
+        canvas.restore();
+      }
     }
   }
 

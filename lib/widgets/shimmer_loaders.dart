@@ -347,11 +347,9 @@ class ClassroomShimmer extends StatelessWidget {
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.school_rounded,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[800]
-                      : Colors.white,
+                  color: Colors.white,
                   size: 20,
                 ),
               ),
@@ -360,37 +358,43 @@ class ClassroomShimmer extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Classroom', style: AppTextStyles.h3),
-                    Text(
-                      isTeacher
-                          ? 'Manage your subjects and assignments'
-                          : 'Track your subjects and assignments',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
+                    Container(height: 18, width: 120, color: Colors.white),
+                    const SizedBox(height: 4),
+                    Container(height: 12, width: 200, color: Colors.white),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            isTeacher ? 'Your Subjects' : 'Student Workspace',
-            style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Container(height: 24, width: 180, color: Colors.white),
+          const SizedBox(height: 8),
+          Container(height: 14, width: double.infinity, color: Colors.white),
           const SizedBox(height: 4),
-          if (!isTeacher)
-            Text(
-              'Track your semester subjects, deadlines, and submissions in one place.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textMuted,
+          Container(height: 14, width: 250, color: Colors.white),
+          const SizedBox(height: AppSpacing.xl),
+          Row(
+            children: [
+              Expanded(
+                child: BoxShimmer(height: 80, borderRadius: AppRadius.lg),
               ),
-            ),
-          const SizedBox(height: AppSpacing.lg),
-          if (!isTeacher) Text('Your Subjects', style: AppTextStyles.h4),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: BoxShimmer(height: 80, borderRadius: AppRadius.lg),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.md),
-          const CardShimmer(),
+          Row(
+            children: [
+              Expanded(
+                child: BoxShimmer(height: 140, borderRadius: AppRadius.lg),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Container(height: 20, width: 140, color: Colors.white),
+          const SizedBox(height: AppSpacing.md),
           const CardShimmer(),
           const CardShimmer(),
         ],

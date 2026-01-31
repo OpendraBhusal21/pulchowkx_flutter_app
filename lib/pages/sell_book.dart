@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/models/book_listing.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -32,7 +33,9 @@ class _SellBookPageState extends State<SellBookPage> {
   BookCondition _condition = BookCondition.good;
   BookCategory? _selectedCategory;
   List<BookCategory> _categories = [];
+  List<BookImage> _existingImages = [];
   final List<File> _selectedImages = [];
+  final List<int> _imagesToDelete = [];
   bool _isLoading = false;
   bool _isSaving = false;
 
@@ -58,6 +61,7 @@ class _SellBookPageState extends State<SellBookPage> {
       _descriptionController.text = book.description ?? '';
       _courseCodeController.text = book.courseCode ?? '';
       _condition = book.condition;
+      _existingImages = List.from(book.images ?? []);
     }
   }
 
@@ -89,6 +93,14 @@ class _SellBookPageState extends State<SellBookPage> {
 
   void _removeImage(int index) {
     setState(() => _selectedImages.removeAt(index));
+  }
+
+  void _removeExistingImage(int index) {
+    final image = _existingImages[index];
+    setState(() {
+      _existingImages.removeAt(index);
+      _imagesToDelete.add(image.id);
+    });
   }
 
   Future<void> _submit() async {
@@ -145,13 +157,19 @@ class _SellBookPageState extends State<SellBookPage> {
             );
 
       if (result['success'] == true) {
-        // Upload images for new listings
-        if (!_isEditMode &&
-            result['data'] != null &&
-            _selectedImages.isNotEmpty) {
-          final listing = result['data'] as BookListing;
+        final listingId = _isEditMode
+            ? widget.existingBook!.id
+            : (result['data'] as BookListing).id;
+
+        // Delete images
+        for (final imageId in _imagesToDelete) {
+          await _apiService.deleteBookImage(listingId, imageId);
+        }
+
+        // Upload new images
+        if (_selectedImages.isNotEmpty) {
           for (final image in _selectedImages) {
-            await _apiService.uploadBookImage(listing.id, image);
+            await _apiService.uploadBookImage(listingId, image);
           }
         }
 
@@ -246,12 +264,10 @@ class _SellBookPageState extends State<SellBookPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Images Section
-                    if (!_isEditMode) ...[
-                      Text('Photos', style: AppTextStyles.labelLarge),
-                      const SizedBox(height: AppSpacing.sm),
-                      _buildImagePicker(),
-                      const SizedBox(height: AppSpacing.lg),
-                    ],
+                    Text('Photos', style: AppTextStyles.labelLarge),
+                    const SizedBox(height: AppSpacing.sm),
+                    _buildImagePicker(),
+                    const SizedBox(height: AppSpacing.lg),
 
                     // Basic Info
                     _buildTextField(
@@ -276,12 +292,15 @@ class _SellBookPageState extends State<SellBookPage> {
                       hint: 'Enter price',
                       keyboardType: TextInputType.number,
                       validator: (v) {
-                        if (v?.trim().isEmpty == true)
+                        if (v?.trim().isEmpty == true) {
                           return 'Price is required';
-                        if (double.tryParse(v!.trim()) == null)
+                        }
+                        if (double.tryParse(v!.trim()) == null) {
                           return 'Please enter a valid price';
-                        if (double.parse(v.trim()) <= 0)
+                        }
+                        if (double.parse(v.trim()) <= 0) {
                           return 'Price must be greater than zero';
+                        }
                         return null;
                       },
                     ),
@@ -381,7 +400,7 @@ class _SellBookPageState extends State<SellBookPage> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButtonFormField<BookCategory?>(
-                            value: _selectedCategory,
+                            initialValue: _selectedCategory,
                             isExpanded: true,
                             hint: const Text('Select a category'),
                             validator: (v) =>
@@ -453,6 +472,47 @@ class _SellBookPageState extends State<SellBookPage> {
               ),
             ),
           ),
+          // Existing Images
+          ..._existingImages.asMap().entries.map((entry) {
+            final index = entry.key;
+            final image = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.sm),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: CachedNetworkImage(
+                      imageUrl: image.imageUrl,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _removeExistingImage(index),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          // New Images
           ..._selectedImages.asMap().entries.map((entry) {
             final index = entry.key;
             final file = entry.value;
