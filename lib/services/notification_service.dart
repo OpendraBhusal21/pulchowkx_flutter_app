@@ -149,6 +149,12 @@ class NotificationService {
   static Future<void> subscribeToFaculty(int facultyId) async {
     await subscribeToTopic('faculty_$facultyId');
   }
+
+  static Future<bool> hasPermission() async {
+    final settings = await _messaging.getNotificationSettings();
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+  }
 }
 
 // Global background message handler

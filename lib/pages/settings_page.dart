@@ -30,15 +30,37 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+    final hasPermission = await NotificationService.hasPermission();
+
     setState(() {
-      _upcomingEvents = prefs.getBool('notify_events') ?? true;
-      _marketplaceAlerts = prefs.getBool('notify_books') ?? true;
-      _universityAnnouncements = prefs.getBool('notify_announcements') ?? true;
+      _upcomingEvents =
+          hasPermission && (prefs.getBool('notify_events') ?? true);
+      _marketplaceAlerts =
+          hasPermission && (prefs.getBool('notify_books') ?? true);
+      _universityAnnouncements =
+          hasPermission && (prefs.getBool('notify_announcements') ?? true);
       _isLoading = false;
     });
   }
 
   Future<void> _toggleNotification(String key, bool value) async {
+    if (value) {
+      final hasPermission = await NotificationService.hasPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Please enable notification permissions in system settings.',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
 

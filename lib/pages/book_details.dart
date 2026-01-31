@@ -5,6 +5,7 @@ import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
 
 class BookDetailsPage extends StatefulWidget {
   final int bookId;
@@ -91,18 +92,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
     if (_myRequest != null) {
       if (_myRequest!.status == RequestStatus.accepted) {
-        // Already accepted, show seller info or launch email
-        final email = _book!.seller?.email;
-        if (email != null) {
-          final emailUri = Uri.parse(
-            'mailto:$email?subject=Interested in: ${_book!.title}',
-          );
-          if (await canLaunchUrl(emailUri)) {
-            await launchUrl(emailUri);
-          }
-        }
+        // Show choice dialog
+        _showContactOptions();
       } else {
-        // Pending or Rejected, maybe show status
+        // Pending or Rejected, show status
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Request is ${_myRequest!.status.label}'),
@@ -177,6 +170,111 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
   }
 
+  Future<void> _openChat() async {
+    if (_book == null) return;
+
+    setState(() => _isRequesting = true);
+
+    final result = await _apiService.sendMessage(
+      _book!.id,
+      "Hi, I'm interested in this book: ${_book!.title}",
+    );
+
+    if (mounted) {
+      setState(() => _isRequesting = false);
+      if (result['success'] == true && result['data'] != null) {
+        final conversations = await _apiService.getConversations();
+        try {
+          final convo = conversations.firstWhere(
+            (c) => c.listingId == _book!.id,
+          );
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatRoomPage(conversation: convo),
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('Error finding conversation: $e');
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Failed to open chat')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showContactOptions() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Contact Seller', style: AppTextStyles.h4),
+              const SizedBox(height: AppSpacing.lg),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(
+                    Icons.chat_outlined,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: const Text('In-app Chat'),
+                subtitle: const Text('Chat instantly with the seller'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openChat();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(
+                    Icons.email_outlined,
+                    color: AppColors.accent,
+                  ),
+                ),
+                title: const Text('Email Seller'),
+                subtitle: Text(_book!.seller?.email ?? 'Send an email'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final email = _book!.seller?.email;
+                  if (email != null) {
+                    final emailUri = Uri.parse(
+                      'mailto:$email?subject=Interested in: ${_book!.title}',
+                    );
+                    if (await canLaunchUrl(emailUri)) {
+                      await launchUrl(emailUri);
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -193,7 +291,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
         title: Text('Book Details', style: AppTextStyles.h4),
         actions: [
-          if (_book != null && !_book!.isOwner)
+          if (_book != null && !_book!.isOwner) ...[
+            if (_myRequest?.status == RequestStatus.accepted)
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                onPressed: _openChat,
+              ),
             IconButton(
               icon: Icon(
                 _book!.isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -203,6 +306,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               ),
               onPressed: _toggleSave,
             ),
+          ],
         ],
       ),
       body: _buildBody(),
@@ -505,9 +609,22 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     ),
                   ),
                 ),
+              const SizedBox(width: AppSpacing.md),
+              if (!_book!.isOwner &&
+                  _myRequest?.status == RequestStatus.accepted)
+                IconButton(
+                  onPressed: _openChat,
+                  icon: const Icon(
+                    Icons.chat_outlined,
+                    color: AppColors.primary,
+                  ),
+                  tooltip: 'Chat with Seller',
+                ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
+          const Divider(),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Icon(

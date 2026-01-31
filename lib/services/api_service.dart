@@ -8,6 +8,7 @@ import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/models/classroom.dart';
 import 'package:pulchowkx_app/models/club.dart';
 import 'package:pulchowkx_app/models/event.dart';
+import 'package:pulchowkx_app/models/chat.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -1985,5 +1986,131 @@ class ApiService {
   Future<bool> isTeacher() async {
     final role = await getUserRole();
     return role == 'teacher';
+  }
+
+  // ==================== CHAT API ====================
+
+  /// Get all conversations for the current user
+  Future<List<MarketplaceConversation>> getConversations() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/chat/conversations'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map(
+                (c) =>
+                    MarketplaceConversation.fromJson(c as Map<String, dynamic>),
+              )
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting conversations: $e');
+      return [];
+    }
+  }
+
+  /// Get messages for a specific conversation
+  Future<List<MarketplaceMessage>> getChatMessages(int conversationId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/chat/conversations/$conversationId/messages'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] != null) {
+          return (json['data'] as List)
+              .map(
+                (m) => MarketplaceMessage.fromJson(m as Map<String, dynamic>),
+              )
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting messages: $e');
+      return [];
+    }
+  }
+
+  /// Send a message for a listing
+  Future<Map<String, dynamic>> sendMessage(
+    int listingId,
+    String content,
+  ) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/chat/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+        body: jsonEncode({'listingId': listingId, 'content': content}),
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'data': json['data'] != null
+            ? MarketplaceMessage.fromJson(json['data'] as Map<String, dynamic>)
+            : null,
+        'message': json['message'],
+      };
+    } catch (e) {
+      debugPrint('Error sending message: $e');
+      return {'success': false, 'message': ' Error: $e'};
+    }
+  }
+
+  /// Delete a conversation
+  Future<Map<String, dynamic>> deleteConversation(int conversationId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/chat/conversations/$conversationId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'message': json['message'] ?? 'Conversation deleted',
+      };
+    } catch (e) {
+      debugPrint('Error deleting conversation: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
   }
 }

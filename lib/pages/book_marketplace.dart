@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
+import 'package:pulchowkx_app/pages/marketplace/conversations_page.dart';
 
 class BookMarketplacePage extends StatefulWidget {
   const BookMarketplacePage({super.key});
@@ -216,15 +217,30 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
               ],
             ),
           ),
-          TextButton.icon(
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConversationsPage(),
+                ),
+              ).then((_) => _loadListings());
+            },
+            icon: const Icon(Icons.chat_outlined, color: AppColors.primary),
+            tooltip: 'Messages',
+          ),
+          IconButton(
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MyBooksPage()),
               ).then((_) => _loadListings());
             },
-            icon: const Icon(Icons.library_books_outlined),
-            label: const Text('My Books'),
+            icon: const Icon(
+              Icons.library_books_outlined,
+              color: AppColors.primary,
+            ),
+            tooltip: 'My Books',
           ),
         ],
       ),
