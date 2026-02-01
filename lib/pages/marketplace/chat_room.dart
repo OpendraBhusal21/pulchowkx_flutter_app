@@ -4,11 +4,17 @@ import 'package:pulchowkx_app/models/chat.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final MarketplaceConversation conversation;
+  final String? initialMessage;
 
-  const ChatRoomPage({super.key, required this.conversation});
+  const ChatRoomPage({
+    super.key,
+    required this.conversation,
+    this.initialMessage,
+  });
 
   @override
   State<ChatRoomPage> createState() => _ChatRoomPageState();
@@ -28,6 +34,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialMessage != null) {
+      _messageController.text = widget.initialMessage!;
+    }
     _loadInitialData();
     _startPolling();
   }
@@ -161,13 +170,18 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             CircleAvatar(
               radius: 16,
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(
-                otherUser?.name.substring(0, 1).toUpperCase() ?? '?',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              backgroundImage: otherUser?.image != null
+                  ? CachedNetworkImageProvider(otherUser!.image!)
+                  : null,
+              child: otherUser?.image == null
+                  ? Text(
+                      otherUser?.name.substring(0, 1).toUpperCase() ?? '?',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(

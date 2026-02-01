@@ -6,6 +6,7 @@ import 'package:pulchowkx_app/theme/app_theme.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pulchowkx_app/pages/marketplace/chat_room.dart';
+import 'package:pulchowkx_app/models/chat.dart';
 
 class BookDetailsPage extends StatefulWidget {
   final int bookId;
@@ -175,33 +176,51 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
     setState(() => _isRequesting = true);
 
-    final result = await _apiService.sendMessage(
-      _book!.id,
-      "Hi, I'm interested in this book: ${_book!.title}",
-    );
+    // Issue 5: Fill message box instead of sending automatically.
+    // Check if conversation exists.
+    final conversations = await _apiService.getConversations();
+    MarketplaceConversation? existingConvo;
+    try {
+      existingConvo = conversations.firstWhere((c) => c.listingId == _book!.id);
+    } catch (_) {
+      existingConvo = null;
+    }
 
     if (mounted) {
       setState(() => _isRequesting = false);
-      if (result['success'] == true && result['data'] != null) {
-        final conversations = await _apiService.getConversations();
-        try {
-          final convo = conversations.firstWhere(
-            (c) => c.listingId == _book!.id,
-          );
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatRoomPage(conversation: convo),
-              ),
-            );
-          }
-        } catch (e) {
-          debugPrint('Error finding conversation: $e');
-        }
+      if (existingConvo != null) {
+        // Just navigate to existing chat
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatRoomPage(conversation: existingConvo!),
+          ),
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Failed to open chat')),
+        // Navigate to new chat with pre-filled message
+        final userId = await _apiService.getDatabaseUserId();
+        if (!mounted) return;
+        final dummyConvo = MarketplaceConversation(
+          id: 0, // 0 indicates a new conversation
+          listingId: _book!.id,
+          buyerId: userId ?? '',
+          sellerId: _book!.sellerId,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          listing: _book,
+          seller: _book!.seller,
+        );
+
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatRoomPage(
+              conversation: dummyConvo,
+              initialMessage:
+                  "Hi, I'm interested in this book: ${_book!.title}",
+            ),
+          ),
         );
       }
     }
@@ -610,15 +629,24 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   ),
                 ),
               const SizedBox(width: AppSpacing.md),
-              if (!_book!.isOwner &&
-                  _myRequest?.status == RequestStatus.accepted)
+              if (!_book!.isOwner)
                 IconButton(
-                  onPressed: _openChat,
+                  onPressed: () async {
+                    final email = _book!.seller?.email;
+                    if (email != null) {
+                      final emailUri = Uri.parse(
+                        'mailto:$email?subject=Interested in: ${_book!.title}',
+                      );
+                      if (await canLaunchUrl(emailUri)) {
+                        await launchUrl(emailUri);
+                      }
+                    }
+                  },
                   icon: const Icon(
-                    Icons.chat_outlined,
-                    color: AppColors.primary,
+                    Icons.email_outlined,
+                    color: AppColors.accent,
                   ),
-                  tooltip: 'Chat with Seller',
+                  tooltip: 'Email Seller',
                 ),
             ],
           ),

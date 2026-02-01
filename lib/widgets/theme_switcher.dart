@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -21,8 +20,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
   ui.Image? _image;
   final GlobalKey _boundaryKey = GlobalKey();
   late AnimationController _animationController;
-  Offset _tapOffset = Offset.zero;
-  bool _isExpanding = true;
+  bool _isDarkToLight = false;
 
   @override
   void initState() {
@@ -57,7 +55,7 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
         return;
       }
 
-      // 1. Capture current state
+      // Capture current state
       final image = await boundary.toImage(
         pixelRatio: WidgetsBinding
             .instance
@@ -72,15 +70,13 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
 
       setState(() {
         _image = image;
-        _tapOffset = offset;
-        _isExpanding =
-            !isCurrentlyDark; // If currently light, we expand (to dark). If currently dark, we shrink (to light).
+        _isDarkToLight = isCurrentlyDark;
       });
 
-      // 2. Change theme
+      // Change theme
       toggle();
 
-      // 3. Start animation
+      // Start animation
       _animationController.forward();
     } catch (e) {
       debugPrint('Failed to capture theme transition: $e');
@@ -103,11 +99,10 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
                 animation: _animationController,
                 builder: (context, child) {
                   return CustomPaint(
-                    painter: _CircularRevealPainter(
+                    painter: _FadePainter(
                       image: _image!,
                       fraction: _animationController.value,
-                      center: _tapOffset,
-                      isExpanding: _isExpanding,
+                      isDarkToLight: _isDarkToLight,
                     ),
                     size: Size.infinite,
                   );
@@ -120,79 +115,42 @@ class ThemeSwitcherState extends State<ThemeSwitcher>
   }
 }
 
-class _CircularRevealPainter extends CustomPainter {
+class _FadePainter extends CustomPainter {
   final ui.Image image;
   final double fraction;
-  final Offset center;
-  final bool isExpanding;
+  final bool isDarkToLight;
 
-  _CircularRevealPainter({
+  _FadePainter({
     required this.image,
     required this.fraction,
-    required this.center,
-    required this.isExpanding,
+    required this.isDarkToLight,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Calculate the maximum radius needed to cover the entire screen
-    final double maxRadius = _calcMaxRadius(size, center);
+    final paint = Paint();
 
-    if (isExpanding) {
-      // Light -> Dark: The dark theme (current state) expands,
-      // so we draw the OLD image (light) and clip a hole in it.
-      final double radius = maxRadius * fraction;
-
-      canvas.save();
-      final Path path = Path()
-        ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-        ..addOval(Rect.fromCircle(center: center, radius: radius))
-        ..fillType = PathFillType.evenOdd;
-      canvas.clipPath(path);
-
-      paintImage(
-        canvas: canvas,
-        rect: Rect.fromLTWH(0, 0, size.width, size.height),
-        image: image,
-        fit: BoxFit.fill,
-      );
-      canvas.restore();
+    if (isDarkToLight) {
+      // Dark -> Light: Requested Fade Out animation
+      paint.color = Colors.white.withValues(alpha: 1.0 - fraction);
     } else {
-      // Dark -> Light: The dark theme (old image) shrinks to the center.
-      final double radius = maxRadius * (1 - fraction);
-
-      if (radius > 0) {
-        canvas.save();
-        final Path path = Path()
-          ..addOval(Rect.fromCircle(center: center, radius: radius));
-        canvas.clipPath(path);
-
-        paintImage(
-          canvas: canvas,
-          rect: Rect.fromLTWH(0, 0, size.width, size.height),
-          image: image,
-          fit: BoxFit.fill,
-        );
-        canvas.restore();
-      }
+      // Light -> Dark: Requested Fade In animation
+      // We draw the OLD image (light) and fade it out to reveal the NEW (dark)
+      paint.color = Colors.white.withValues(alpha: 1.0 - fraction);
     }
-  }
 
-  double _calcMaxRadius(Size size, Offset center) {
-    final double w = size.width;
-    final double h = size.height;
-
-    // Distance to the 4 corners
-    final double d1 = center.distance; // distance to (0,0)
-    final double d2 = (center - Offset(w, 0)).distance;
-    final double d3 = (center - Offset(0, h)).distance;
-    final double d4 = (center - Offset(w, h)).distance;
-
-    return max(max(d1, d2), max(d3, d4));
+    canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    paintImage(
+      canvas: canvas,
+      rect: Rect.fromLTWH(0, 0, size.width, size.height),
+      image: image,
+      fit: BoxFit.fill,
+    );
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_CircularRevealPainter oldDelegate) {
+  bool shouldRepaint(_FadePainter oldDelegate) {
     return oldDelegate.fraction != fraction;
   }
 }

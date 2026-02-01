@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pulchowkx_app/pages/main_layout.dart';
 import 'package:pulchowkx_app/auth/service/google_auth.dart';
-import 'package:pulchowkx_app/pages/clubs.dart';
 import 'package:pulchowkx_app/cards/my_enrollments.dart';
 import 'package:pulchowkx_app/services/api_service.dart';
 import 'package:pulchowkx_app/theme/app_theme.dart';
@@ -397,29 +396,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                 );
                               },
                             ),
-                          _QuickActionCard(
-                            icon: Icons.groups_rounded,
-                            title: 'Campus Clubs',
-                            description:
-                                'Explore clubs and discover upcoming events.',
-                            color: AppColors.accent,
-                            heroTag: 'hero-clubs',
-                            onTap: () {
-                              final mainLayout = MainLayout.of(context);
-                              if (mainLayout != null) {
-                                mainLayout.setSelectedIndex(
-                                  5,
-                                ); // Clubs are at index 5
-                              } else {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const ClubsPage(),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
                           _QuickActionCard(
                             icon: Icons.chat_outlined,
                             title: 'Messages',

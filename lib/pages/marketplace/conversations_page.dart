@@ -20,6 +20,10 @@ class _ConversationsPageState extends State<ConversationsPage> {
   bool _isLoading = true;
   String? _userId;
 
+  // Selection mode state
+  bool _isSelectionMode = false;
+  final Set<int> _selectedIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -37,12 +41,31 @@ class _ConversationsPageState extends State<ConversationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: Text(
+          _isSelectionMode ? '${_selectedIds.length} selected' : 'Messages',
+        ),
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    _isSelectionMode = false;
+                    _selectedIds.clear();
+                  });
+                },
+              )
+            : null,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadData,
-          ),
+          if (_isSelectionMode)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              onPressed: _deleteSelectedConversations,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _loadData,
+            ),
         ],
       ),
       body: _isLoading
@@ -60,23 +83,85 @@ class _ConversationsPageState extends State<ConversationsPage> {
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final convo = _conversations[index];
+                  final isSelected = _selectedIds.contains(convo.id);
+
                   return _ConversationTile(
                     conversation: convo,
                     currentUserId: _userId,
+                    isSelected: isSelected,
+                    isSelectionMode: _isSelectionMode,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ChatRoomPage(conversation: convo),
-                        ),
-                      ).then((_) => _loadData());
+                      if (_isSelectionMode) {
+                        _toggleSelection(convo.id);
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ChatRoomPage(conversation: convo),
+                          ),
+                        ).then((_) => _loadData());
+                      }
+                    },
+                    onLongPress: () {
+                      if (!_isSelectionMode) {
+                        setState(() {
+                          _isSelectionMode = true;
+                          _selectedIds.add(convo.id);
+                        });
+                      }
                     },
                   );
                 },
               ),
             ),
     );
+  }
+
+  void _toggleSelection(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedConversations() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Conversations'),
+        content: Text(
+          'Are you sure you want to delete ${_selectedIds.length} conversations?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      for (final id in _selectedIds) {
+        await _apiService.deleteConversation(id);
+      }
+      _selectedIds.clear();
+      _isSelectionMode = false;
+      await _loadData();
+    }
   }
 
   Widget _buildEmptyState() {
@@ -112,12 +197,18 @@ class _ConversationsPageState extends State<ConversationsPage> {
 class _ConversationTile extends StatelessWidget {
   final MarketplaceConversation conversation;
   final String? currentUserId;
+  final bool isSelected;
+  final bool isSelectionMode;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const _ConversationTile({
     required this.conversation,
     required this.currentUserId,
+    required this.isSelected,
+    required this.isSelectionMode,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
@@ -128,19 +219,37 @@ class _ConversationTile extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
+      onLongPress: onLongPress,
+      selected: isSelected,
+      selectedTileColor: AppColors.primary.withValues(alpha: 0.05),
       leading: Stack(
         children: [
           CircleAvatar(
             backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            child: Text(
-              otherUser?.name.substring(0, 1).toUpperCase() ?? '?',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
+            backgroundImage: otherUser?.image != null
+                ? CachedNetworkImageProvider(otherUser!.image!)
+                : null,
+            child: otherUser?.image == null
+                ? Text(
+                    otherUser?.name.substring(0, 1).toUpperCase() ?? '?',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
+          ),
+          if (isSelectionMode && isSelected)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 20),
               ),
             ),
-          ),
-          if (conversation.listing?.primaryImageUrl != null)
+          if (!isSelectionMode && conversation.listing?.primaryImageUrl != null)
             Positioned(
               right: 0,
               bottom: 0,
