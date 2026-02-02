@@ -29,8 +29,9 @@ class _MyEnrollmentsState extends State<MyEnrollments> {
   void _loadEnrollments() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      _enrollmentsFuture = _apiService.getDatabaseUserId().then((dbId) {
-        return _apiService.getEnrollments(dbId ?? user.uid);
+      _enrollmentsFuture = _apiService.requireDatabaseUserId().then((dbId) {
+        if (dbId == null) return <EventRegistration>[];
+        return _apiService.getEnrollments(dbId);
       });
     } else {
       _enrollmentsFuture = Future.value([]);

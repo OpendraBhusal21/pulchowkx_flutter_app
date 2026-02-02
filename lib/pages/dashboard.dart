@@ -13,6 +13,7 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/pages/settings_page.dart';
 import 'package:pulchowkx_app/models/event.dart';
 import 'package:pulchowkx_app/pages/marketplace/conversations_page.dart';
+import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -21,10 +22,18 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage> with AutoRefreshMixin {
   final ApiService _apiService = ApiService();
   bool _isAdmin = false;
   bool _isLoading = true;
+
+  @override
+  int get tabIndex => 4; // Dashboard tab index in MainLayout
+
+  @override
+  void onBecameVisible() {
+    _handleRefresh();
+  }
 
   @override
   void initState() {
@@ -131,6 +140,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    checkForRefresh(); // Check if we need to refresh on tab change
     User? user;
     try {
       user = FirebaseAuth.instance.currentUser;
@@ -513,9 +523,12 @@ class _DashboardPageState extends State<DashboardPage> {
     if (user == null) return const SizedBox.shrink();
 
     return FutureBuilder<String?>(
-      future: _apiService.getDatabaseUserId(),
+      future: _apiService.requireDatabaseUserId(),
       builder: (context, idSnapshot) {
-        final userId = idSnapshot.data ?? user.uid;
+        if (!idSnapshot.hasData || idSnapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        final userId = idSnapshot.data!;
 
         return FutureBuilder<List<EventRegistration>>(
           future: _apiService.getEnrollments(userId),

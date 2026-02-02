@@ -27,6 +27,9 @@ class MainLayout extends StatefulWidget {
 class MainLayoutState extends State<MainLayout> {
   late int _selectedIndex;
 
+  /// Expose the current selected tab index
+  int get currentIndex => _selectedIndex;
+
   // Keys for nested navigation in each tab
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [
     GlobalKey<NavigatorState>(), // 0: Home

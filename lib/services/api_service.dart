@@ -77,6 +77,21 @@ class ApiService {
     }
   }
 
+  /// Get the database user ID, throwing an exception if not available.
+  /// This ensures we ALWAYS use the database ID for API calls, never Firebase UID.
+  /// Returns the database user ID or null if user needs to re-authenticate.
+  Future<String?> requireDatabaseUserId() async {
+    final dbUserId = await getDatabaseUserId();
+    if (dbUserId != null) return dbUserId;
+
+    // Database ID not found - this shouldn't happen if sync worked properly
+    // Log the issue for debugging
+    debugPrint(
+      'WARNING: Database user ID not found. User may need to re-authenticate.',
+    );
+    return null;
+  }
+
   /// Store the database user ID securely
   Future<void> _storeDatabaseUserId(String id) async {
     await _secureStorage.write(key: _dbUserIdKey, value: id);

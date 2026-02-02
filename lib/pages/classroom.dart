@@ -8,6 +8,7 @@ import 'classroom/shared_widgets.dart';
 import 'classroom/student_view.dart';
 import 'classroom/teacher_view.dart';
 import 'package:pulchowkx_app/services/notification_service.dart';
+import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class ClassroomPage extends StatefulWidget {
   const ClassroomPage({super.key});
@@ -16,7 +17,7 @@ class ClassroomPage extends StatefulWidget {
   State<ClassroomPage> createState() => _ClassroomPageState();
 }
 
-class _ClassroomPageState extends State<ClassroomPage> {
+class _ClassroomPageState extends State<ClassroomPage> with AutoRefreshMixin {
   final ApiService _apiService = ApiService();
 
   StudentProfile? _profile;
@@ -31,6 +32,14 @@ class _ClassroomPageState extends State<ClassroomPage> {
   Faculty? _selectedFaculty;
   int _selectedSemester = 1;
   DateTime _semesterStartDate = DateTime.now();
+
+  @override
+  int get tabIndex => 2; // Classroom tab index in MainLayout
+
+  @override
+  void onBecameVisible() {
+    _loadData();
+  }
 
   @override
   void initState() {
@@ -115,6 +124,7 @@ class _ClassroomPageState extends State<ClassroomPage> {
 
   @override
   Widget build(BuildContext context) {
+    checkForRefresh(); // Check if we need to refresh on tab change
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.classroom),
       body: Container(

@@ -106,7 +106,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _fullEvent == null) return;
 
-    final userId = await _apiService.getDatabaseUserId() ?? user.uid;
+    final userId = await _apiService.requireDatabaseUserId();
+    if (userId == null) return;
     final enrollments = await _apiService.getEnrollments(userId);
     if (mounted) {
       setState(() {
@@ -122,7 +123,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     if (user == null || _fullEvent == null) return;
 
     try {
-      final userId = await _apiService.getDatabaseUserId() ?? user.uid;
+      final userId = await _apiService.requireDatabaseUserId();
+      if (userId == null) return;
       final clubId = _fullEvent!.clubId;
       final isAdmin = await _apiService.isClubAdminOrOwner(clubId, userId);
       if (mounted) {
@@ -342,7 +344,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     setState(() => _isRegistering = true);
 
     try {
-      final userId = await _apiService.getDatabaseUserId() ?? user.uid;
+      final userId = await _apiService.requireDatabaseUserId();
+      if (userId == null) {
+        if (mounted) {
+          _showSnackBar('Please sign in again to register.', isError: true);
+        }
+        return;
+      }
       final result = await _apiService.registerForEvent(userId, _fullEvent!.id);
 
       if (mounted) {
@@ -408,7 +416,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     setState(() => _isCancelling = true);
 
     try {
-      final userId = await _apiService.getDatabaseUserId() ?? user.uid;
+      final userId = await _apiService.requireDatabaseUserId();
+      if (userId == null) {
+        if (mounted) {
+          _showSnackBar('Please sign in again to cancel.', isError: true);
+        }
+        return;
+      }
       final result = await _apiService.cancelRegistration(
         userId,
         _fullEvent!.id,

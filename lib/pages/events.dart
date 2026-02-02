@@ -12,6 +12,7 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'package:pulchowkx_app/widgets/event_card.dart';
 import 'package:pulchowkx_app/widgets/offline_banner.dart';
+import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -20,9 +21,17 @@ class EventsPage extends StatefulWidget {
   State<EventsPage> createState() => _EventsPageState();
 }
 
-class _EventsPageState extends State<EventsPage> {
+class _EventsPageState extends State<EventsPage> with AutoRefreshMixin {
   final ApiService _apiService = ApiService();
   late Future<List<ClubEvent>> _eventsFuture;
+
+  @override
+  int get tabIndex => 6; // Events tab index in MainLayout
+
+  @override
+  void onBecameVisible() {
+    _refreshEvents();
+  }
 
   @override
   void initState() {
@@ -38,6 +47,7 @@ class _EventsPageState extends State<EventsPage> {
 
   @override
   Widget build(BuildContext context) {
+    checkForRefresh(); // Check if we need to refresh on tab change
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.events),
       body: Container(

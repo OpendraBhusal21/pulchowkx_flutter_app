@@ -11,6 +11,7 @@ import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'package:pulchowkx_app/widgets/club_card.dart';
 import 'package:pulchowkx_app/widgets/offline_banner.dart';
+import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class ClubsPage extends StatefulWidget {
   const ClubsPage({super.key});
@@ -19,9 +20,17 @@ class ClubsPage extends StatefulWidget {
   State<ClubsPage> createState() => _ClubsPageState();
 }
 
-class _ClubsPageState extends State<ClubsPage> {
+class _ClubsPageState extends State<ClubsPage> with AutoRefreshMixin {
   final ApiService _apiService = ApiService();
   late Future<List<Club>> _clubsFuture;
+
+  @override
+  int get tabIndex => 5; // Clubs tab index in MainLayout
+
+  @override
+  void onBecameVisible() {
+    _refreshClubs();
+  }
 
   @override
   void initState() {
@@ -31,6 +40,7 @@ class _ClubsPageState extends State<ClubsPage> {
 
   @override
   Widget build(BuildContext context) {
+    checkForRefresh(); // Check if we need to refresh on tab change
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.clubs),
       body: Container(

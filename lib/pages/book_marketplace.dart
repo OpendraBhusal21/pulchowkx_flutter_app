@@ -12,6 +12,7 @@ import 'package:pulchowkx_app/widgets/custom_app_bar.dart';
 import 'package:pulchowkx_app/widgets/shimmer_loaders.dart';
 import 'package:pulchowkx_app/widgets/empty_states.dart';
 import 'package:pulchowkx_app/pages/marketplace/conversations_page.dart';
+import 'package:pulchowkx_app/mixins/auto_refresh_mixin.dart';
 
 class BookMarketplacePage extends StatefulWidget {
   const BookMarketplacePage({super.key});
@@ -20,7 +21,8 @@ class BookMarketplacePage extends StatefulWidget {
   State<BookMarketplacePage> createState() => _BookMarketplacePageState();
 }
 
-class _BookMarketplacePageState extends State<BookMarketplacePage> {
+class _BookMarketplacePageState extends State<BookMarketplacePage>
+    with AutoRefreshMixin {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -39,6 +41,14 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
   String _sortBy = 'newest';
   RangeValues _priceRange = const RangeValues(0, 10000);
   bool _showFilters = false;
+
+  @override
+  int get tabIndex => 3; // Marketplace tab index in MainLayout
+
+  @override
+  void onBecameVisible() {
+    _loadListings();
+  }
 
   @override
   void initState() {
@@ -148,6 +158,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage> {
 
   @override
   Widget build(BuildContext context) {
+    checkForRefresh(); // Check if we need to refresh on tab change
     return Scaffold(
       appBar: const CustomAppBar(currentPage: AppPage.bookMarketplace),
       floatingActionButton: FloatingActionButton.extended(
