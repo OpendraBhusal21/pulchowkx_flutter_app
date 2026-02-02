@@ -62,7 +62,19 @@ class FirebaseServices {
   }
 
   Future<void> googleSignOut() async {
+    // Clear FCM token from server before signing out
+    await _apiService.clearFcmToken();
+
+    // Clear stored user data
+    await _apiService.clearStoredUserId();
+
+    // Unsubscribe from notification topics to prevent duplicate notifications
+    await NotificationService.unsubscribeFromAllTopics();
+
+    // Sign out from Google and Firebase
     await googleSignIn.signOut();
     await auth.signOut();
+
+    debugPrint("========== Logout Successful ==========");
   }
 }

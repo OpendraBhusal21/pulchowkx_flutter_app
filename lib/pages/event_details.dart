@@ -37,6 +37,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool _isRegistering = false;
   bool _isRegistered = false;
   bool _isCancelling = false;
+  bool _isCancellingEvent = false;
   ClubEvent? _fullEvent;
   bool _isLoading = true;
   String? _error;
@@ -498,6 +499,134 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     }
   }
 
+  Future<void> _handleCancelEvent() async {
+    if (_fullEvent == null) return;
+
+    // Don't allow cancelling already cancelled or completed events
+    if (_fullEvent!.status == 'cancelled') {
+      _showSnackBar('Event is already cancelled', isError: true);
+      return;
+    }
+    if (_fullEvent!.status == 'completed') {
+      _showSnackBar('Cannot cancel a completed event', isError: true);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: const Icon(
+                Icons.cancel_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Cancel Event',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to cancel "${_fullEvent!.title}"?',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.warning,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone. All registered participants will be notified.',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: AppColors.warning),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep Event'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cancel Event'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isCancellingEvent = true);
+
+    try {
+      final result = await _apiService.cancelEvent(_fullEvent!.id);
+
+      if (mounted) {
+        if (result['success'] == true) {
+          _showSnackBar('Event cancelled successfully');
+          // Refresh event data to show cancelled status
+          _loadFullEventData();
+        } else {
+          _showSnackBar(
+            result['message'] ?? 'Failed to cancel event',
+            isError: true,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('An error occurred. Please try again.', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCancellingEvent = false);
+      }
+    }
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -919,6 +1048,63 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Cancel Event Button
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          (_isCancellingEvent ||
+                              _fullEvent?.status == 'cancelled' ||
+                              _fullEvent?.status == 'completed')
+                          ? null
+                          : _handleCancelEvent,
+                      icon: _isCancellingEvent
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.red,
+                              ),
+                            )
+                          : Icon(
+                              _fullEvent?.status == 'cancelled'
+                                  ? Icons.cancel
+                                  : Icons.cancel_outlined,
+                              color: _fullEvent?.status == 'cancelled'
+                                  ? Colors.grey
+                                  : Colors.red,
+                            ),
+                      label: Text(
+                        _isCancellingEvent
+                            ? 'Cancelling...'
+                            : _fullEvent?.status == 'cancelled'
+                            ? 'Event Cancelled'
+                            : 'Cancel Event',
+                        style: TextStyle(
+                          color:
+                              (_fullEvent?.status == 'cancelled' ||
+                                  _fullEvent?.status == 'completed')
+                              ? Colors.grey
+                              : Colors.red,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color:
+                              (_fullEvent?.status == 'cancelled' ||
+                                  _fullEvent?.status == 'completed')
+                              ? Colors.grey
+                              : Colors.red,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppRadius.md),

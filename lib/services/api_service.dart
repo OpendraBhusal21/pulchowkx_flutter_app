@@ -44,6 +44,25 @@ class ApiService {
     await prefs.remove(_userRoleKey);
   }
 
+  /// Clear FCM token from server on logout to prevent duplicate notifications
+  Future<void> clearFcmToken() async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) return;
+
+      await http.post(
+        Uri.parse('$apiBaseUrl/users/clear-fcm-token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+      debugPrint('FCM token cleared from server');
+    } catch (e) {
+      debugPrint('Error clearing FCM token: $e');
+    }
+  }
+
   /// Get the user's role (student, admin, etc.)
   Future<String> getUserRole() async {
     final prefs = await SharedPreferences.getInstance();
@@ -614,6 +633,32 @@ class ApiService {
     }
   }
 
+  /// Cancel an event (club owner/admin only)
+  Future<Map<String, dynamic>> cancelEvent(int eventId) async {
+    try {
+      final userId = await getDatabaseUserId();
+      if (userId == null) {
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/$eventId/cancel'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $userId',
+        },
+      );
+
+      final json = jsonDecode(response.body);
+      return {
+        'success': json['success'] == true,
+        'message': json['message'] ?? 'Event cancelled',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   // ==================== ADMIN: CLUB MANAGEMENT ====================
 
   /// Create a new club (admin only)
@@ -1088,35 +1133,56 @@ class ApiService {
 
   /// Get book listings with filters
   Future<BookListingsResponse?> getBookListings([BookFilters? filters]) async {
-    try {
-      final userId = await getDatabaseUserId();
-      final queryParams =
-          filters?.toQueryParams() ?? {'page': '1', 'limit': '12'};
-      final uri = Uri.parse(
-        '$apiBaseUrl/books',
-      ).replace(queryParameters: queryParams);
+    final queryParams =
+        filters?.toQueryParams() ?? {'page': '1', 'limit': '12'};
+    final cacheKey = 'book_listings_${queryParams.toString()}';
+    bool isOnline = await _hasInternetConnection();
 
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (userId != null) 'Authorization': 'Bearer $userId',
-        },
-      );
+    if (isOnline) {
+      try {
+        final userId = await getDatabaseUserId();
+        final uri = Uri.parse(
+          '$apiBaseUrl/books',
+        ).replace(queryParameters: queryParams);
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+        final response = await http.get(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return BookListingsResponse.fromJson(
+              json['data'] as Map<String, dynamic>,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching book listings online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return BookListingsResponse.fromJson(
             json['data'] as Map<String, dynamic>,
           );
         }
+      } catch (e) {
+        debugPrint('Error parsing cached book listings: $e');
       }
-      return null;
-    } catch (e) {
-      debugPrint('Error fetching book listings: $e');
-      return null;
     }
+
+    return null;
   }
 
   /// Get a single book listing by ID
@@ -1262,31 +1328,52 @@ class ApiService {
 
   /// Get current user's book listings
   Future<List<BookListing>> getMyBookListings() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/my-listings'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'my_book_listings_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/books/my-listings'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map((e) => BookListing.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching my listings online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map((e) => BookListing.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached my listings: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching my listings: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Mark a book as sold
@@ -1382,31 +1469,52 @@ class ApiService {
 
   /// Get saved books
   Future<List<SavedBook>> getSavedBooks() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/saved'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'saved_books_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/books/saved'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map((e) => SavedBook.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching saved books online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map((e) => SavedBook.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached saved books: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching saved books: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Save a book
@@ -1461,25 +1569,46 @@ class ApiService {
 
   /// Get book categories
   Future<List<BookCategory>> getBookCategories() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/categories'),
-        headers: {'Content-Type': 'application/json'},
-      );
+    const String cacheKey = 'book_categories_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/books/categories'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map((e) => BookCategory.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching book categories online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map((e) => BookCategory.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached book categories: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching book categories: $e');
-      return [];
     }
+
+    return [];
   }
 
   // ==================== BOOK PURCHASE REQUESTS ====================
@@ -1675,25 +1804,46 @@ class ApiService {
 
   /// Get all faculties
   Future<List<Faculty>> getFaculties() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/classroom/faculties'),
-        headers: {'Content-Type': 'application/json'},
-      );
+    const String cacheKey = 'faculties_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/classroom/faculties'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['faculties'] != null) {
+            return (json['faculties'] as List)
+                .map((e) => Faculty.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching faculties online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['faculties'] != null) {
           return (json['faculties'] as List)
               .map((e) => Faculty.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached faculties: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching faculties: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Get subjects by faculty and optional semester
@@ -1701,60 +1851,102 @@ class ApiService {
     required int facultyId,
     int? semester,
   }) async {
-    try {
-      final queryParams = <String, String>{'facultyId': facultyId.toString()};
-      if (semester != null) queryParams['semester'] = semester.toString();
+    final String cacheKey = 'subjects_${facultyId}_${semester ?? 'all'}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      final uri = Uri.parse(
-        '$apiBaseUrl/classroom/subjects',
-      ).replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-      );
+    if (isOnline) {
+      try {
+        final queryParams = <String, String>{'facultyId': facultyId.toString()};
+        if (semester != null) queryParams['semester'] = semester.toString();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+        final uri = Uri.parse(
+          '$apiBaseUrl/classroom/subjects',
+        ).replace(queryParameters: queryParams);
+        final response = await http.get(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['subjects'] != null) {
+            return (json['subjects'] as List)
+                .map((e) => Subject.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching subjects online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['subjects'] != null) {
           return (json['subjects'] as List)
               .map((e) => Subject.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached subjects: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching subjects: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Get current user's student profile
   Future<StudentProfile?> getStudentProfile() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return null;
+    final userId = await getDatabaseUserId();
+    if (userId == null) return null;
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/classroom/me'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'student_profile_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/classroom/me'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['profile'] != null) {
+            return StudentProfile.fromJson(
+              json['profile'] as Map<String, dynamic>,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching student profile online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['profile'] != null) {
           return StudentProfile.fromJson(
             json['profile'] as Map<String, dynamic>,
           );
         }
+      } catch (e) {
+        debugPrint('Error parsing cached student profile: $e');
       }
-      return null;
-    } catch (e) {
-      debugPrint('Error fetching student profile: $e');
-      return null;
     }
+
+    return null;
   }
 
   /// Create or update student profile
@@ -1791,60 +1983,102 @@ class ApiService {
 
   /// Get current user's subjects with assignments
   Future<List<Subject>> getMySubjects() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/classroom/me/subjects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'my_subjects_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/classroom/me/subjects'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['subjects'] != null) {
+            return (json['subjects'] as List)
+                .map((e) => Subject.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching my subjects online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['subjects'] != null) {
           return (json['subjects'] as List)
               .map((e) => Subject.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached my subjects: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching my subjects: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Get teacher's assigned subjects
   Future<List<Subject>> getTeacherSubjects() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/classroom/teacher/subjects'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'teacher_subjects_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/classroom/teacher/subjects'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['subjects'] != null) {
+            return (json['subjects'] as List)
+                .map((e) => Subject.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching teacher subjects online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['subjects'] != null) {
           return (json['subjects'] as List)
               .map((e) => Subject.fromJson(e as Map<String, dynamic>))
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached teacher subjects: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error fetching teacher subjects: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Add a subject for teacher
@@ -2014,20 +2248,45 @@ class ApiService {
 
   /// Get all conversations for the current user
   Future<List<MarketplaceConversation>> getConversations() async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/chat/conversations'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'conversations_${userId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/chat/conversations'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map(
+                  (c) => MarketplaceConversation.fromJson(
+                    c as Map<String, dynamic>,
+                  ),
+                )
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error getting conversations online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map(
@@ -2036,30 +2295,53 @@ class ApiService {
               )
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached conversations: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error getting conversations: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Get messages for a specific conversation
   Future<List<MarketplaceMessage>> getChatMessages(int conversationId) async {
-    try {
-      final userId = await getDatabaseUserId();
-      if (userId == null) return [];
+    final userId = await getDatabaseUserId();
+    if (userId == null) return [];
 
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/chat/conversations/$conversationId/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $userId',
-        },
-      );
+    final String cacheKey = 'chat_messages_${conversationId}_cache';
+    bool isOnline = await _hasInternetConnection();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
+    if (isOnline) {
+      try {
+        final response = await http.get(
+          Uri.parse('$apiBaseUrl/chat/conversations/$conversationId/messages'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $userId',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          await _saveToCache(cacheKey, response.body);
+          final json = jsonDecode(response.body);
+          if (json['success'] == true && json['data'] != null) {
+            return (json['data'] as List)
+                .map(
+                  (m) => MarketplaceMessage.fromJson(m as Map<String, dynamic>),
+                )
+                .toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error getting messages online: $e');
+      }
+    }
+
+    // Offline or fallback
+    final cachedData = await _getFromCache(cacheKey);
+    if (cachedData != null) {
+      try {
+        final json = jsonDecode(cachedData);
         if (json['success'] == true && json['data'] != null) {
           return (json['data'] as List)
               .map(
@@ -2067,12 +2349,12 @@ class ApiService {
               )
               .toList();
         }
+      } catch (e) {
+        debugPrint('Error parsing cached messages: $e');
       }
-      return [];
-    } catch (e) {
-      debugPrint('Error getting messages: $e');
-      return [];
     }
+
+    return [];
   }
 
   /// Send a message for a listing

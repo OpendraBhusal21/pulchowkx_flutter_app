@@ -166,6 +166,18 @@ class NotificationService {
     debugPrint('Unsubscribed from topic: $topic');
   }
 
+  /// Unsubscribe from all notification topics (used during logout)
+  static Future<void> unsubscribeFromAllTopics() async {
+    try {
+      await _messaging.unsubscribeFromTopic('events');
+      await _messaging.unsubscribeFromTopic('books');
+      await _messaging.unsubscribeFromTopic('announcements');
+      debugPrint('Unsubscribed from all notification topics');
+    } catch (e) {
+      debugPrint('Error unsubscribing from topics: $e');
+    }
+  }
+
   static Future<void> syncToken() async {
     try {
       final token = await getToken();
