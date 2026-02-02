@@ -235,7 +235,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage>
                 MaterialPageRoute(
                   builder: (context) => const ConversationsPage(),
                 ),
-              ).then((_) => _loadListings());
+              );
             },
             icon: const Icon(Icons.chat_outlined, color: AppColors.primary),
             tooltip: 'Messages',
@@ -245,7 +245,7 @@ class _BookMarketplacePageState extends State<BookMarketplacePage>
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MyBooksPage()),
-              ).then((_) => _loadListings());
+              );
             },
             icon: const Icon(
               Icons.library_books_outlined,

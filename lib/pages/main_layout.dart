@@ -27,6 +27,9 @@ class MainLayout extends StatefulWidget {
 class MainLayoutState extends State<MainLayout> {
   late int _selectedIndex;
 
+  /// ValueNotifier to notify children when tab changes
+  final ValueNotifier<int> tabIndexNotifier = ValueNotifier<int>(0);
+
   /// Expose the current selected tab index
   int get currentIndex => _selectedIndex;
 
@@ -46,6 +49,13 @@ class MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    tabIndexNotifier.value = _selectedIndex;
+  }
+
+  @override
+  void dispose() {
+    tabIndexNotifier.dispose();
+    super.dispose();
   }
 
   void setSelectedIndex(int index) {
@@ -66,6 +76,7 @@ class MainLayoutState extends State<MainLayout> {
       // If auth is needed and user is not logged in, switch to login tab (index 7)
       setState(() {
         _selectedIndex = 7;
+        tabIndexNotifier.value = 7;
       });
       return;
     }
@@ -76,6 +87,7 @@ class MainLayoutState extends State<MainLayout> {
     } else {
       setState(() {
         _selectedIndex = index;
+        tabIndexNotifier.value = index;
       });
     }
   }

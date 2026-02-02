@@ -5,7 +5,11 @@ import 'package:pulchowkx_app/models/chat.dart';
 
 /// Socket service for real-time chat communication
 class SocketService {
-  static const String _socketUrl = 'https://pulchowk-x.vercel.app';
+  // WebSocket server URL - separate from main API for hybrid deployment
+  // TODO: Update this URL after deploying your WebSocket server to Railway/Render
+  static const String _socketUrl = kDebugMode
+      ? 'http://localhost:3001' // Local development
+      : 'https://your-websocket-server.railway.app'; // Production WebSocket server
 
   static final SocketService _instance = SocketService._internal();
   factory SocketService() => _instance;

@@ -271,9 +271,13 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$baseUrl/clubs'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
         );
 
         if (response.statusCode == 200) {
@@ -318,9 +322,13 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$baseUrl/clubs/$clubId'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
         );
 
         if (response.statusCode == 200) {
@@ -361,9 +369,13 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$apiBaseUrl/clubs/club-profile/$clubId'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
         );
         if (response.statusCode == 200) {
           await _saveToCache(cacheKey, response.body);
@@ -417,9 +429,13 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$baseUrl/all-events'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
         );
 
         if (response.statusCode == 200) {
@@ -462,9 +478,13 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$baseUrl/get-upcoming-events'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
         );
 
         if (response.statusCode == 200) {
@@ -507,9 +527,13 @@ class ApiService {
 
     if (isOnline) {
       try {
+        final userId = await getDatabaseUserId();
         final response = await http.get(
           Uri.parse('$baseUrl/events/$clubId'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (userId != null) 'Authorization': 'Bearer $userId',
+          },
         );
 
         if (response.statusCode == 200) {
