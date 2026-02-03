@@ -530,14 +530,14 @@ class _MapPageState extends State<MapPage> {
             'fountain-icon', 0.3,
             0.12, // default size
           ],
-          iconAnchor: 'bottom', // Anchor icons at bottom so tap area aligns
+          iconAnchor: 'center', // Center anchor for better tap alignment
           iconAllowOverlap: false, // Hide icons when overlapping
           iconOptional: true, // Make icon optional when it would overlap
           // Text label settings
           textField: ['get', 'title'],
           textSize: 10,
           textAnchor: 'top',
-          textOffset: [0, 0.75],
+          textOffset: [0, 1.2], // Increased offset since icon is now centered
           textAllowOverlap: false, // Prevent label collision
           textOptional: true, // Hide text if it collides
           textColor: _isSatellite ? '#FFFFFF' : '#000000',
@@ -579,14 +579,14 @@ class _MapPageState extends State<MapPage> {
     }
 
     try {
-      // Create a generous rect for hit detection to make it easier to tap icons
-      // Icons typically have iconAnchor: 'bottom' and labels have textAnchor: 'top'
+      // Create a rect for hit detection centered on the tap point
+      // Icons have iconAnchor: 'center' so they render centered on the coordinate
+      // Labels have textAnchor: 'top' and render below the icon
       final tapRect = Rect.fromLTRB(
-        point.x - 80, // left - increased for easier tapping
-        point.y - 100, // top - increased for easier tapping
-        point.x + 80, // right - increased for easier tapping
-        point.y +
-            60, // bottom (for labels below) - increased for easier tapping
+        point.x - 30, // left
+        point.y - 30, // top
+        point.x + 30, // right
+        point.y + 50, // bottom - extra space for the label below
       );
 
       // Query rendered features in the rect area - only the markers-layer
@@ -835,6 +835,9 @@ class _MapPageState extends State<MapPage> {
 
     setState(() => _isLocating = true);
 
+    // Store the current indicator state to restore if needed
+    final wasIndicatorEnabled = _showLocationIndicator;
+
     try {
       // Check and request location permission
       var status = await Permission.location.status;
@@ -901,6 +904,14 @@ class _MapPageState extends State<MapPage> {
           );
         }
         return;
+      }
+
+      // Temporarily enable location indicator to allow getting location
+      // This is needed because MapLibre's location component needs to be active
+      if (!_showLocationIndicator && mounted) {
+        setState(() => _showLocationIndicator = true);
+        // Wait for the widget to rebuild with location enabled
+        await Future.delayed(const Duration(milliseconds: 500));
       }
 
       // Ensure MapLibre's location component is enabled
@@ -986,6 +997,10 @@ class _MapPageState extends State<MapPage> {
         }
       } else {
         // Location request returned null or timed out
+        // Restore the previous indicator state
+        if (mounted && _showLocationIndicator != wasIndicatorEnabled) {
+          setState(() => _showLocationIndicator = wasIndicatorEnabled);
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1000,6 +1015,10 @@ class _MapPageState extends State<MapPage> {
       }
     } catch (e) {
       debugPrint('Error getting location: $e');
+      // Restore the previous indicator state on error
+      if (mounted && _showLocationIndicator != wasIndicatorEnabled) {
+        setState(() => _showLocationIndicator = wasIndicatorEnabled);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
