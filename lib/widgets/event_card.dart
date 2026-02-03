@@ -212,9 +212,7 @@ class _EventCardState extends State<EventCard> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const Spacer(),
-                        // const SizedBox(height: AppSpacing.sm),
-                        // Time and venue
+                        const SizedBox(height: AppSpacing.xs),
                         Row(
                           children: [
                             const Icon(
@@ -344,7 +342,7 @@ class _EventCardState extends State<EventCard> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                        const SizedBox(height: AppSpacing.sm),
+                        const SizedBox(height: AppSpacing.xs),
                         Wrap(
                           spacing: AppSpacing.sm,
                           runSpacing: 4,

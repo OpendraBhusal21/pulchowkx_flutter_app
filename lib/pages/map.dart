@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -46,6 +47,8 @@ class _MapPageState extends State<MapPage> {
   // ignore: unused_field
   LatLng? _userLocation;
   bool _isLocating = false;
+  bool _showLocationIndicator = false; // Only show when user is within campus
+  Timer? _locationCheckTimer; // Periodic timer to check user location
   bool _isNavigationPanelExpanded = true;
   bool _isTogglingMapType = false; // Guard for map type toggle
   double _cameraBearing = 0.0; // Track camera rotation for custom compass
@@ -98,10 +101,12 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    _startLocationMonitoring();
   }
 
   @override
   void dispose() {
+    _locationCheckTimer?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -775,6 +780,50 @@ class _MapPageState extends State<MapPage> {
         location.longitude <= _campusBounds.northeast.longitude;
   }
 
+  /// Start monitoring user location to show/hide location indicator
+  void _startLocationMonitoring() {
+    // Check location every 5 seconds
+    _locationCheckTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _checkLocationInBounds(),
+    );
+  }
+
+  /// Check if current location is within campus and update indicator visibility
+  Future<void> _checkLocationInBounds() async {
+    if (_mapController == null) return;
+
+    try {
+      // Check if location permission is granted
+      final status = await Permission.location.status;
+      if (!status.isGranted) {
+        // No permission, hide indicator
+        if (mounted && _showLocationIndicator) {
+          setState(() => _showLocationIndicator = false);
+        }
+        return;
+      }
+
+      // Try to get current location without triggering UI feedback
+      final latLng = await _mapController!.requestMyLocationLatLng().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
+
+      if (latLng != null) {
+        final isWithinCampus = _isWithinCampus(latLng);
+
+        // Update indicator visibility if it changed
+        if (mounted && _showLocationIndicator != isWithinCampus) {
+          setState(() => _showLocationIndicator = isWithinCampus);
+        }
+      }
+    } catch (e) {
+      // Silently handle errors - just keep current indicator state
+      debugPrint('Location check error: $e');
+    }
+  }
+
   /// Get current location and animate camera to it
   Future<void> _goToCurrentLocation() async {
     if (_mapController == null) return;
@@ -907,9 +956,17 @@ class _MapPageState extends State<MapPage> {
 
       if (latLng != null) {
         _userLocation = latLng;
+        final isWithinCampus = _isWithinCampus(latLng);
+
+        // Update location indicator visibility based on campus bounds
+        if (mounted) {
+          setState(() {
+            _showLocationIndicator = isWithinCampus;
+          });
+        }
 
         // Check if within campus bounds
-        if (_isWithinCampus(latLng)) {
+        if (isWithinCampus) {
           _mapController!.animateCamera(CameraUpdate.newLatLngZoom(latLng, 19));
         } else {
           // Show message if outside campus
@@ -1526,7 +1583,7 @@ class _MapPageState extends State<MapPage> {
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
               onMapClick: _onMapClick,
-              myLocationEnabled: true,
+              myLocationEnabled: _showLocationIndicator,
               myLocationTrackingMode: MyLocationTrackingMode.none,
               myLocationRenderMode: MyLocationRenderMode.compass,
               trackCameraPosition: true,

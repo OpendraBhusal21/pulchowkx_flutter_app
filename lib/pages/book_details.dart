@@ -43,13 +43,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
   }
 
-  Future<void> _fetchRequestStatus() async {
-    final myRequest = await _apiService.getPurchaseRequestStatus(widget.bookId);
-    if (mounted) {
-      setState(() => _myRequest = myRequest);
-    }
-  }
-
   Future<void> _loadBook() async {
     setState(() {
       _isLoading = true;

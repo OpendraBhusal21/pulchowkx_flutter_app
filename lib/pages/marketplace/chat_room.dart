@@ -173,6 +173,8 @@ class _ChatRoomPageState extends State<ChatRoomPage>
       ),
     );
 
+    if (!mounted) return;
+
     if (confirmed == true) {
       if (_conversationId == 0) {
         Navigator.pop(context);
