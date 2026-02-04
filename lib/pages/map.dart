@@ -4,9 +4,9 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:http/http.dart' as http;
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:pulchowkx_app/models/chatbot_response.dart';
 import 'package:pulchowkx_app/services/haptic_service.dart';
 import 'package:pulchowkx_app/widgets/chat_bot_widget.dart';
@@ -47,8 +47,6 @@ class _MapPageState extends State<MapPage> {
   // ignore: unused_field
   LatLng? _userLocation;
   bool _isLocating = false;
-  bool _showLocationIndicator = false; // Only show when user is within campus
-  Timer? _locationCheckTimer; // Periodic timer to check user location
   bool _isNavigationPanelExpanded = true;
   bool _isTogglingMapType = false; // Guard for map type toggle
   double _cameraBearing = 0.0; // Track camera rotation for custom compass
@@ -101,12 +99,10 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
-    _startLocationMonitoring();
   }
 
   @override
   void dispose() {
-    _locationCheckTimer?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -780,50 +776,6 @@ class _MapPageState extends State<MapPage> {
         location.longitude <= _campusBounds.northeast.longitude;
   }
 
-  /// Start monitoring user location to show/hide location indicator
-  void _startLocationMonitoring() {
-    // Check location every 5 seconds
-    _locationCheckTimer = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) => _checkLocationInBounds(),
-    );
-  }
-
-  /// Check if current location is within campus and update indicator visibility
-  Future<void> _checkLocationInBounds() async {
-    if (_mapController == null) return;
-
-    try {
-      // Check if location permission is granted
-      final status = await Permission.location.status;
-      if (!status.isGranted) {
-        // No permission, hide indicator
-        if (mounted && _showLocationIndicator) {
-          setState(() => _showLocationIndicator = false);
-        }
-        return;
-      }
-
-      // Try to get current location without triggering UI feedback
-      final latLng = await _mapController!.requestMyLocationLatLng().timeout(
-        const Duration(seconds: 3),
-        onTimeout: () => null,
-      );
-
-      if (latLng != null) {
-        final isWithinCampus = _isWithinCampus(latLng);
-
-        // Update indicator visibility if it changed
-        if (mounted && _showLocationIndicator != isWithinCampus) {
-          setState(() => _showLocationIndicator = isWithinCampus);
-        }
-      }
-    } catch (e) {
-      // Silently handle errors - just keep current indicator state
-      debugPrint('Location check error: $e');
-    }
-  }
-
   /// Get current location and animate camera to it
   Future<void> _goToCurrentLocation() async {
     if (_mapController == null) return;
@@ -835,57 +787,10 @@ class _MapPageState extends State<MapPage> {
 
     setState(() => _isLocating = true);
 
-    // Store the current indicator state to restore if needed
-    final wasIndicatorEnabled = _showLocationIndicator;
-
     try {
-      // Check and request location permission
-      var status = await Permission.location.status;
-
-      if (status.isDenied) {
-        status = await Permission.location.request();
-        // After granting permission, give the system time to initialize
-        if (status.isGranted) {
-          await Future.delayed(const Duration(milliseconds: 1500));
-        }
-      }
-
-      if (status.isPermanentlyDenied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Location permission denied. Please enable it in settings.',
-              ),
-              backgroundColor: Colors.orange[700],
-              behavior: SnackBarBehavior.floating,
-              action: SnackBarAction(
-                label: 'Settings',
-                textColor: Colors.white,
-                onPressed: () => openAppSettings(),
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      if (!status.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Location permission required'),
-              backgroundColor: Colors.orange[700],
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Check if location services are enabled
-      final serviceStatus = await Permission.location.serviceStatus;
-      if (!serviceStatus.isEnabled) {
+      // Check if location services are enabled using geolocator
+      bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -898,7 +803,7 @@ class _MapPageState extends State<MapPage> {
               action: SnackBarAction(
                 label: 'Settings',
                 textColor: Colors.white,
-                onPressed: () => openAppSettings(),
+                onPressed: () => geo.Geolocator.openLocationSettings(),
               ),
             ),
           );
@@ -906,119 +811,118 @@ class _MapPageState extends State<MapPage> {
         return;
       }
 
-      // Temporarily enable location indicator to allow getting location
-      // This is needed because MapLibre's location component needs to be active
-      if (!_showLocationIndicator && mounted) {
-        setState(() => _showLocationIndicator = true);
-        // Wait for the widget to rebuild with location enabled
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
+      // Check and request location permission using geolocator
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
 
-      // Ensure MapLibre's location component is enabled
-      try {
-        // Re-enable location tracking on the map to ensure the component is initialized
-        await _mapController!.updateMyLocationTrackingMode(
-          MyLocationTrackingMode.trackingGps,
-        );
-        // Give the location component time to initialize
-        await Future.delayed(const Duration(milliseconds: 1000));
-      } catch (e) {
-        debugPrint('📍 Error enabling location tracking: $e');
-      }
-
-      // Use MapLibre's built-in location tracking with timeout
-      // On first launch, GPS may need time to acquire a fix, so we retry
-      LatLng? latLng;
-      for (int attempt = 0; attempt < 3; attempt++) {
-        try {
-          latLng = await _mapController!.requestMyLocationLatLng().timeout(
-            Duration(
-              seconds: attempt == 0 ? 20 : 15,
-            ), // Longer timeout for first attempt
-            onTimeout: () => null,
-          );
-        } catch (e) {
-          debugPrint('📍 Location attempt ${attempt + 1} error: $e');
-          // If it's a platform exception about location disabled, wait and retry
-          if (e.toString().contains('LOCATION DISABLED')) {
-            await Future.delayed(const Duration(seconds: 2));
-            // Try re-enabling location tracking
-            try {
-              await _mapController!.updateMyLocationTrackingMode(
-                MyLocationTrackingMode.trackingGps,
-              );
-              await Future.delayed(const Duration(milliseconds: 500));
-            } catch (_) {}
-          }
-        }
-        if (latLng != null) break;
-        if (attempt < 2) {
-          debugPrint('📍 Location attempt ${attempt + 1} failed, retrying...');
-          await Future.delayed(const Duration(seconds: 2));
-        }
-      }
-
-      // Reset tracking mode back to none after getting location
-      try {
-        await _mapController!.updateMyLocationTrackingMode(
-          MyLocationTrackingMode.none,
-        );
-      } catch (_) {}
-
-      if (latLng != null) {
-        _userLocation = latLng;
-        final isWithinCampus = _isWithinCampus(latLng);
-
-        // Update location indicator visibility based on campus bounds
-        if (mounted) {
-          setState(() {
-            _showLocationIndicator = isWithinCampus;
-          });
-        }
-
-        // Check if within campus bounds
-        if (isWithinCampus) {
-          _mapController!.animateCamera(CameraUpdate.newLatLngZoom(latLng, 19));
-        } else {
-          // Show message if outside campus
+      if (permission == geo.LocationPermission.denied) {
+        permission = await geo.Geolocator.requestPermission();
+        if (permission == geo.LocationPermission.denied) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('You are outside the campus area'),
+                content: const Text('Location permission required'),
                 backgroundColor: Colors.orange[700],
                 behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
               ),
             );
           }
+          return;
         }
-      } else {
-        // Location request returned null or timed out
-        // Restore the previous indicator state
-        if (mounted && _showLocationIndicator != wasIndicatorEnabled) {
-          setState(() => _showLocationIndicator = wasIndicatorEnabled);
-        }
+      }
+
+      if (permission == geo.LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Could not determine your location. Please try again.',
+                'Location permission denied. Please enable it in settings.',
               ),
               backgroundColor: Colors.orange[700],
               behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Settings',
+                textColor: Colors.white,
+                onPressed: () => geo.Geolocator.openAppSettings(),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get current position using geolocator with high accuracy
+      debugPrint('📍 Getting current position with geolocator...');
+      final geo.Position position = await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+
+      debugPrint(
+        '📍 Got position: ${position.latitude}, ${position.longitude}',
+      );
+
+      final latLng = LatLng(position.latitude, position.longitude);
+      _userLocation = latLng;
+      final isWithinCampus = _isWithinCampus(latLng);
+
+      // Check if within campus bounds
+      if (isWithinCampus) {
+        // Animate camera to user location
+        if (mounted && _mapController != null) {
+          await _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(latLng, 19),
+          );
+        }
+      } else {
+        // Show message if outside campus
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('You are outside the campus area'),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           );
         }
       }
-    } catch (e) {
-      debugPrint('Error getting location: $e');
-      // Restore the previous indicator state on error
-      if (mounted && _showLocationIndicator != wasIndicatorEnabled) {
-        setState(() => _showLocationIndicator = wasIndicatorEnabled);
+    } on geo.LocationServiceDisabledException catch (_) {
+      debugPrint('📍 Location services disabled');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please enable location services'),
+            backgroundColor: Colors.orange[700],
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Settings',
+              textColor: Colors.white,
+              onPressed: () => geo.Geolocator.openLocationSettings(),
+            ),
+          ),
+        );
       }
+    } on TimeoutException catch (_) {
+      debugPrint('📍 Location request timed out');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Location request timed out. Please try again.',
+            ),
+            backgroundColor: Colors.orange[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('📍 Error getting location: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1195,149 +1099,19 @@ class _MapPageState extends State<MapPage> {
       (a, b) => (a['title'] as String).compareTo(b['title'] as String),
     );
 
-    final searchController = TextEditingController();
-
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          // Filter locations based on search query
-          final query = searchController.text.toLowerCase();
-          final filteredLocations = allLocations.where((loc) {
-            final title = (loc['title'] as String).toLowerCase();
-            return title.contains(query);
-          }).toList();
-
-          return DraggableScrollableSheet(
-            initialChildSize: 0.7,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            builder: (context, scrollController) => Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(top: 12, bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-
-                  // Search Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: TextField(
-                      controller: searchController,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'Search start location...',
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        ),
-                        filled: true,
-                        fillColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                        ),
-                        suffixIcon: searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: () {
-                                  searchController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
-
-                  const Divider(height: 1),
-
-                  // Location list
-                  Expanded(
-                    child: filteredLocations.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No locations found',
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            controller: scrollController,
-                            itemCount: filteredLocations.length,
-                            itemBuilder: (context, index) {
-                              final location = filteredLocations[index];
-                              final iconType =
-                                  location['icon'] as String? ?? 'marker';
-                              final color = _getMarkerColor(iconType);
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: color.withAlpha(50),
-                                  child: Icon(
-                                    Icons.place,
-                                    color: color,
-                                    size: 20,
-                                  ),
-                                ),
-                                title: Text(
-                                  location['title'] ?? 'Unknown',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  _startNavigationFromPlace(
-                                    location,
-                                    destination,
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          );
+      builder: (sheetContext) => _StartPointPickerSheet(
+        allLocations: allLocations,
+        destination: destination,
+        onLocationSelected: (location) {
+          Navigator.pop(sheetContext);
+          _startNavigationFromPlace(location, destination);
         },
       ),
     );
-
-    // Dispose resources after sheet closes
-    searchController.dispose();
   }
 
   /// Start navigation from a selected place
@@ -1602,7 +1376,7 @@ class _MapPageState extends State<MapPage> {
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
               onMapClick: _onMapClick,
-              myLocationEnabled: _showLocationIndicator,
+              myLocationEnabled: true,
               myLocationTrackingMode: MyLocationTrackingMode.none,
               myLocationRenderMode: MyLocationRenderMode.compass,
               trackCameraPosition: true,
@@ -2337,6 +2111,170 @@ class _MapPageState extends State<MapPage> {
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Separate stateful widget for the start point picker sheet
+/// This properly manages the TextEditingController lifecycle
+class _StartPointPickerSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> allLocations;
+  final Map<String, dynamic> destination;
+  final void Function(Map<String, dynamic> location) onLocationSelected;
+
+  const _StartPointPickerSheet({
+    required this.allLocations,
+    required this.destination,
+    required this.onLocationSelected,
+  });
+
+  @override
+  State<_StartPointPickerSheet> createState() => _StartPointPickerSheetState();
+}
+
+class _StartPointPickerSheetState extends State<_StartPointPickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Color _getMarkerColor(String iconType) {
+    switch (iconType) {
+      case 'bank':
+        return Colors.green;
+      case 'food':
+        return Colors.orange;
+      case 'library':
+        return Colors.purple;
+      case 'department':
+        return Colors.blue;
+      case 'temple':
+        return Colors.red;
+      case 'gym':
+        return Colors.teal;
+      case 'football':
+        return Colors.green;
+      case 'basketball':
+        return Colors.orange;
+      case 'volleyball':
+        return Colors.blue;
+      case 'cricket':
+        return Colors.green;
+      case 'hostel':
+        return Colors.indigo;
+      case 'gate':
+        return Colors.brown;
+      case 'parking':
+        return Colors.grey;
+      default:
+        return Colors.red;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.toLowerCase();
+    final filteredLocations = widget.allLocations.where((loc) {
+      final title = (loc['title'] as String).toLowerCase();
+      return title.contains(query);
+    }).toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'Search start location...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  filled: true,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                ),
+              ),
+            ),
+
+            const Divider(height: 1),
+
+            // Location list
+            Expanded(
+              child: filteredLocations.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No locations found',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: filteredLocations.length,
+                      itemBuilder: (context, index) {
+                        final location = filteredLocations[index];
+                        final iconType =
+                            location['icon'] as String? ?? 'marker';
+                        final color = _getMarkerColor(iconType);
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: color.withAlpha(50),
+                            child: Icon(Icons.place, color: color, size: 20),
+                          ),
+                          title: Text(
+                            location['title'] ?? 'Unknown',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          onTap: () => widget.onLocationSelected(location),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
